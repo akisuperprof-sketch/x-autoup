@@ -2,11 +2,12 @@
   "version": 2,
   "builds": [
     { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "src/utils/logger.js", "use": "@vercel/node" }
+    { "src": "public/*", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/cron", "dest": "/api/cron.js" },
     { "src": "/go", "dest": "/api/go.js" },
-    { "src": "/", "dest": "/api/go.js" }
+    { "src": "/", "dest": "/api/go.js" },
+    { "src": "/admin", "dest": "/public/admin.html" }
   ]
 }
