@@ -1,8 +1,12 @@
 {
-  "rewrites": [
-    { "source": "/api/cron", "destination": "/api/cron.js" },
-    { "source": "/api/go", "destination": "/api/go.js" },
-    { "source": "/", "destination": "/api/go.js" },
-    { "source": "/go", "destination": "/api/go.js" }
+  "version": 2,
+  "builds": [
+    { "src": "api/*.js", "use": "@vercel/node" },
+    { "src": "src/utils/logger.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/cron", "dest": "/api/cron.js" },
+    { "src": "/go", "dest": "/api/go.js" },
+    { "src": "/", "dest": "/api/go.js" }
   ]
 }
