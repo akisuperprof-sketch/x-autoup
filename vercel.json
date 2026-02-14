@@ -1,34 +1,18 @@
 {
-    "crons": [
-        {
-            "path": "/api/cron",
-            "schedule": "0 23 * * *"
-        }
-    ],
-    "rewrites": [
-        {
-            "source": "/api/cron",
-            "destination": "/api/cron.js"
-        },
-        {
-            "source": "/",
-            "destination": "/api/go"
-        },
-        {
-            "source": "/admin",
-            "destination": "/public/admin.html"
-        },
-        {
-            "source": "/admin.html",
-            "destination": "/public/admin.html"
-        },
-        {
-            "source": "/go",
-            "destination": "/api/go"
-        },
-        {
-            "source": "/apply",
-            "destination": "/public/apply.html"
-        }
-    ]
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 23 * * *"
+    }
+  ],
+  "rewrites": [
+    { "source": "/api/cron", "destination": "/api/cron.js" },
+    { "source": "/go", "destination": "/api/go.js" },
+    { "source": "/", "destination": "/api/go.js" },
+    { "source": "/admin", "destination": "/public/admin.html" },
+    { "source": "/apply", "destination": "/public/apply.html" }
+  ],
+  "functions": {
+    "api/**/*.js": { "maxDuration": 10 }
+  }
 }
