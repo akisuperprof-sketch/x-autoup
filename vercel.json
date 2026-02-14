@@ -1,13 +1,17 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "public/*", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/cron", "dest": "/api/cron.js" },
-    { "src": "/go", "dest": "/api/go.js" },
-    { "src": "/", "dest": "/api/go.js" },
-    { "src": "/admin", "dest": "/public/admin.html" }
-  ]
+    "version": 2,
+    "builds": [
+        { "src": "api/*.js", "use": "@vercel/node" },
+        { "src": "public/**/*", "use": "@vercel/static" }
+    ],
+    "routes": [
+        { "src": "/api/cron", "dest": "/api/cron.js" },
+        { "src": "/go", "dest": "/api/go.js" },
+        { "src": "/", "dest": "/api/go.js" },
+        { "src": "/admin", "dest": "/public/admin.html" },
+        { "src": "/admin.html", "dest": "/public/admin.html" },
+        { "src": "/apply", "dest": "/public/apply.html" },
+        { "src": "/apply.html", "dest": "/public/apply.html" },
+        { "src": "/(.*)", "dest": "/public/$1" }
+    ]
 }
