@@ -1,27 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "public/**/*",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    { "src": "/api/cron", "dest": "/api/cron.js" },
-    { "src": "/go", "dest": "/api/go.js" },
-    { "src": "/", "dest": "/api/go.js" },
-    { "src": "/admin", "dest": "/public/admin.html" },
-    { "src": "/admin.html", "dest": "/public/admin.html" },
-    { "src": "/apply", "dest": "/public/apply.html" }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "0 23 * * *"
-    }
+  "rewrites": [
+    { "source": "/api/cron", "destination": "/api/cron.js" },
+    { "source": "/api/go", "destination": "/api/go.js" },
+    { "source": "/", "destination": "/api/go.js" },
+    { "source": "/go", "destination": "/api/go.js" },
+    { "source": "/admin", "destination": "/public/admin.html" },
+    { "source": "/admin.html", "destination": "/public/admin.html" },
+    { "source": "/apply", "destination": "/public/apply.html" },
+    { "source": "/apply.html", "destination": "/public/apply.html" }
   ]
 }
