@@ -7,6 +7,10 @@
     ],
     "rewrites": [
         {
+            "source": "/api/cron",
+            "destination": "/api/cron.js"
+        },
+        {
             "source": "/",
             "destination": "/api/go"
         },

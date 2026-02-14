@@ -1,0 +1,42 @@
+[
+  {
+    "draft": "This is a test post from the automated system! 🚀 #AirFuture #Test",
+    "stage": "S1",
+    "season": "Winter",
+    "hashtags": [
+      "#AirFuture",
+      "#Test"
+    ],
+    "status": "posted",
+    "scheduled_at": "2025-12-05T15:22:25.940Z",
+    "id": "1764948205945",
+    "result": {
+      "id": "mock_id_1764948240007",
+      "text": "This is a test post from the automated system! 🚀 #AirFuture #Test"
+    }
+  },
+  {
+    "draft": "[Mock] ボクはAirFutureくん！Winterの空気は乾燥してるね💦 加湿とイオンで対策するミライへGO！🔵✨",
+    "stage": "S1",
+    "hashtags": [
+      "#AirFuture",
+      "#Mock"
+    ],
+    "season": "Winter",
+    "status": "draft_ai",
+    "scheduled_at": "",
+    "id": "1764951649145"
+  },
+  {
+    "draft": "[Mock] Influenza & Drynessが流行ってるみたいだね。見えない敵はボクに任せて！🚀",
+    "stage": "S2",
+    "hashtags": [
+      "#AirFuture",
+      "#Trend"
+    ],
+    "season": "Winter",
+    "status": "draft_ai",
+    "scheduled_at": "",
+    "id": "1764951649146"
+  }
+]
