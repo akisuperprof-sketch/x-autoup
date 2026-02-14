@@ -3,15 +3,15 @@
   "rewrites": [
     {
       "source": "/api/cron",
-      "destination": "/api/cron.js"
+      "destination": "/api/cron"
     },
     {
       "source": "/api/go",
-      "destination": "/api/go.js"
+      "destination": "/api/go"
     },
     {
       "source": "/go",
-      "destination": "/api/go.js"
+      "destination": "/api/go"
     },
     {
       "source": "/admin",
@@ -23,7 +23,7 @@
     },
     {
       "source": "/",
-      "destination": "/api/go.js"
+      "destination": "/api/go"
     }
   ]
 }
