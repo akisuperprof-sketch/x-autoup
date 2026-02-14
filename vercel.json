@@ -10,7 +10,9 @@
     { "source": "/go", "destination": "/api/go.js" },
     { "source": "/", "destination": "/api/go.js" },
     { "source": "/admin", "destination": "/public/admin.html" },
-    { "source": "/apply", "destination": "/public/apply.html" }
+    { "source": "/admin.html", "destination": "/public/admin.html" },
+    { "source": "/apply", "destination": "/public/apply.html" },
+    { "source": "/apply.html", "destination": "/public/apply.html" }
   ],
   "functions": {
     "api/**/*.js": { "maxDuration": 10 }
