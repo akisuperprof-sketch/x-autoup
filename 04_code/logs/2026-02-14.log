@@ -1,0 +1,6 @@
+[2026-02-14T06:22:40.963Z] [WARN] Google Sheets credentials missing. Running in local JSON mode only. 
+[2026-02-14T06:22:40.964Z] [INFO] DataService v2 initialized with Local JSON storage. 
+[2026-02-14T06:22:40.965Z] [ERROR] Error reading posts JSON {"errno":-2,"code":"ENOENT","syscall":"open","path":"/Users/akihironishi/x-autoup/04_code/data/posts.json"}
+[2026-02-14T06:22:49.447Z] [WARN] Google Sheets credentials missing. Running in local JSON mode only. 
+[2026-02-14T06:22:49.450Z] [INFO] DataService v2 initialized with Local JSON storage. 
+[2026-02-14T06:22:49.450Z] [ERROR] Error reading posts JSON {"errno":-2,"code":"ENOENT","syscall":"open","path":"/Users/akihironishi/x-autoup/04_code/data/posts.json"}
