@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirFuture LP-Sales AI v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .scroll-area {
+            overflow-y: auto;
+            height: calc(100vh - 220px);
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 240px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -120px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 11px;
+            font-weight: normal;
+            line-height: 1.5;
+            pointer-events: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: #e2e8f0;
+            color: #64748b;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: help;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 border-t-4 border-indigo-600">
+
+    <div class="h-full flex flex-col p-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 shrink-0">
+            <div>
+                <h1 class="text-2xl font-black tracking-tight text-slate-800 flex items-center gap-2">
+                    <span class="bg-indigo-600 text-white px-2 py-0.5 rounded text-lg">AF</span> LP-Sales AI <span
+                        class="text-indigo-600 text-sm font-bold align-top">v2.1</span>
+                </h1>
+                <p class="text-xs text-slate-500 font-medium mt-1">LP直販最大化・自動運用システム (LP Conversion Maximizer)</p>
+            </div>
+
+            <div class="flex gap-4 items-center">
+                <div class="flex flex-col items-end">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase">次回の投稿 (Next Post)</div>
+                    <div class="text-sm font-mono font-bold text-indigo-600" id="next-post-time">--:--</div>
+                </div>
+                <div class="flex gap-1">
+                    <button onclick="triggerCron('scheduled_post')"
+                        class="bg-white border border-slate-200 px-3 py-1.5 rounded text-xs font-bold shadow-sm hover:bg-slate-50 transition">予約投稿を実行</button>
+                    <button onclick="triggerCron('check_metrics')"
+                        class="bg-white border border-slate-200 px-3 py-1.5 rounded text-xs font-bold shadow-sm hover:bg-slate-50 transition">指標計測</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid grid-cols-5 gap-4 mb-6 shrink-0">
+            <!-- Queue -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative group">
+                <p class="text-[10px] text-slate-400 font-black uppercase mb-1">予約待機 (Queue)</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-black text-slate-800" id="kpi-queued">0</span>
+                    <span class="text-[10px] text-slate-400">件</span>
+                </div>
+            </div>
+            <!-- Clicks (New) -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative group overflow-hidden">
+                <div class="absolute right-0 top-0 w-1 bg-blue-500 h-full"></div>
+                <p class="text-[10px] text-blue-500 font-black uppercase mb-1">LPクリック (Clicks)</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-black text-slate-800" id="kpi-clicks">0</span>
+                    <span class="text-[10px] text-slate-400">clicks</span>
+                </div>
+            </div>
+            <!-- CV (New) -->
+            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 shadow-sm relative group overflow-hidden">
+                <div class="absolute right-0 top-0 w-1 bg-indigo-500 h-full"></div>
+                <p class="text-[10px] text-indigo-600 font-black uppercase mb-1">成約件数 (CV)</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-black text-indigo-700" id="kpi-cv">0</span>
+                    <span class="text-[10px] text-indigo-400">sales</span>
+                </div>
+            </div>
+            <!-- Skipped -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                <p class="text-[10px] text-amber-500 font-black uppercase mb-1">スキップ (Skipped)</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-black text-amber-500" id="kpi-skipped">0</span>
+                    <span class="text-[10px] text-slate-400">件</span>
+                </div>
+            </div>
+            <!-- Today -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                <p class="text-[10px] text-slate-400 font-black uppercase mb-1">本日の投稿 (Today)</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-black text-slate-800" id="kpi-today">0</span>
+                    <span class="text-[10px] text-slate-400">/ 5 投稿</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="flex gap-6 flex-1 overflow-hidden">
+            <!-- List Section -->
+            <div class="flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="flex border-b border-slate-100 px-6 shrink-0 bg-slate-50/50 justify-between items-center">
+                    <div class="flex">
+                        <button class="px-4 py-4 text-xs font-bold tab-active">予約リスト (Queue)</button>
+                        <button onclick="alert('Posted History in Spreadsheet')"
+                            class="px-4 py-4 text-xs font-bold text-slate-400 hover:text-slate-600 transition">投稿履歴
+                            (History)</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">販売抑制モード:</span>
+                        <span id="sales-inhibit-status"
+                            class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Checking...</span>
+                    </div>
+                </div>
+                <div id="posts-container" class="flex-1 overflow-y-auto p-6 space-y-4 bg-white">
+                    <!-- Cards -->
+                </div>
+            </div>
+
+            <!-- Stats & Logs Section -->
+            <div class="w-80 flex flex-col gap-6 shrink-0">
+                <div class="bg-indigo-900 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+                    <div class="relative z-10 flex flex-col gap-4">
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-white text-xs font-black uppercase tracking-widest leading-none">戦略生成
+                                (LP-Sales Engine)</h3>
+                        </div>
+
+                        <!-- Free Text Input -->
+                        <div>
+                            <label class="text-[9px] text-indigo-300 font-bold uppercase block mb-1">トピック指定 (Custom
+                                Topic / Memo)</label>
+                            <textarea id="gen-memo"
+                                class="w-full bg-indigo-950/50 border border-indigo-700 rounded-lg p-2 text-xs text-indigo-100 placeholder-indigo-700 outline-none focus:border-indigo-500 transition"
+                                rows="2" placeholder="例: 花粉対策の科学、新生活応援..."></textarea>
+                        </div>
+
+                        <!-- Days Selector -->
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="text-[9px] text-indigo-300 font-bold uppercase block mb-1">期間
+                                    (Period)</label>
+                                <select id="gen-days"
+                                    class="w-full bg-indigo-800 border-none rounded text-xs text-white font-bold py-1 px-2 outline-none cursor-pointer">
+                                    <option value="1">1日間 (1 Day)</option>
+                                    <option value="7">7日間 (1 Week)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="triggerGenerate(false)"
+                                class="bg-white hover:bg-indigo-50 text-indigo-900 font-bold py-2 rounded-xl text-xs transition shadow-lg">
+                                通常生成
+                            </button>
+                            <button onclick="triggerGenerate(true)"
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs transition shadow-lg">
+                                ストーリー
+                            </button>
+                        </div>
+                        <p class="text-[9px] text-indigo-400 font-medium text-center italic">※1日あたり3記事が生成されます</p>
+                    </div>
+                </div>
+
+                <!-- Analysis Panel -->
+                <div
+                    class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
+                    <h3 class="text-[10px] text-slate-400 font-black uppercase mb-4 tracking-widest">成約パフォーマンス (CV
+                        Analysis)</h3>
+                    <div id="stats-container" class="space-y-3 flex-1 overflow-y-auto pr-1">
+                        <!-- Stats Items -->
+                    </div>
+                </div>
+
+                <div
+                    class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-48 flex flex-col overflow-hidden">
+                    <h3 class="text-[10px] text-slate-400 font-black uppercase mb-4 tracking-widest">最新ログ (Logs)</h3>
+                    <div id="cron-logs-container" class="space-y-3 flex-1 overflow-y-auto text-[10px]">
+                        <!-- Log Items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const res = await fetch('/api/dashboard');
+                const data = await res.json();
+                render(data);
+            } catch (err) { console.error(err); }
+        }
+
+        async function triggerGenerate(storyMode) {
+            const days = document.getElementById('gen-days').value;
+            const memo = document.getElementById('gen-memo').value;
+            const modeName = storyMode ? `${days}日分ストーリー` : `${days}日分（計${days * 3}件）の通常記事`;
+            const memoText = memo ? `\n指定トピック: 「${memo}」` : "";
+
+            if (!confirm(`AIによる「${modeName}」の生成を開始しますか？${memoText}`)) return;
+            try {
+                const res = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count: 3, storyMode, days, memo })
+                });
+                const json = await res.json();
+                alert(json.message);
+                if (memo) document.getElementById('gen-memo').value = ""; // Clear after success
+                fetchData();
+            } catch (e) { alert(e.message); }
+        }
+
+        async function triggerCron(action) {
+            try {
+                const res = await fetch(`/api/cron?action=${action}`);
+                const json = await res.json();
+                alert(json.message);
+                fetchData();
+            } catch (e) { alert(e.message); }
+        }
+
+        async function forcePost(id) {
+            if (!confirm('即時投稿しますか？')) return;
+            try {
+                const res = await fetch('/api/post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const json = await res.json();
+                alert('Result: ' + (json.tweet_id || 'SUCCESS'));
+                fetchData();
+            } catch (e) { alert(e.message); }
+        }
+
+        async function deletePost(id) {
+            if (!confirm('削除しますか？')) return;
+            try {
+                await fetch('/api/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                fetchData();
+            } catch (e) { alert(e.message); }
+        }
+
+        function render(data) {
+            const kpi = data.kpi || {};
+            document.getElementById('kpi-queued').innerText = kpi.queued || 0;
+            document.getElementById('kpi-today').innerText = kpi.today_posted || 0;
+            document.getElementById('kpi-skipped').innerText = kpi.skipped || 0;
+
+            // Use pre-calculated stats from server
+            document.getElementById('kpi-clicks').innerText = kpi.total_clicks || 0;
+            document.getElementById('kpi-cv').innerText = kpi.total_cv || 0;
+
+            // Sales Inhibition Check (last 10)
+            const recent = (data.posts || []).filter(p => p.status === 'posted' || p.status === 'scheduled').slice(-10);
+            const salesCount = recent.filter(p => p.post_type === '誘導型' || p.lp_priority === 'high').length;
+            const inhibitEl = document.getElementById('sales-inhibit-status');
+            if (salesCount >= 2) {
+                inhibitEl.innerText = "🚨 警戒中 (Sales Max)";
+                inhibitEl.className = "text-[10px] font-black px-2 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200 animate-pulse";
+            } else {
+                inhibitEl.innerText = "✅ 教育優先 (Clean)";
+                inhibitEl.className = "text-[10px] font-black px-2 py-0.5 rounded-full bg-green-100 text-green-600 border border-green-200";
+            }
+
+            // List
+            const container = document.getElementById('posts-container');
+            container.innerHTML = (data.posts || []).filter(p => p.status !== 'posted').map(p => {
+                const timeStr = p.scheduled_at ? dayjs(p.scheduled_at).format('MM/DD HH:mm') : 'Draft';
+                const typeStyle = {
+                    '不安型': 'bg-red-50 text-red-600 border-red-100',
+                    '解説型': 'bg-blue-50 text-blue-600 border-blue-100',
+                    '証明型': 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                    '誘導型': 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                }[p.post_type] || 'bg-slate-50 text-slate-500 border-slate-100';
+
+                const lpBadge = p.lp_priority === 'high' ? '<span class="bg-indigo-600 text-white px-1.5 py-0.5 rounded text-[8px] font-black italic">URL挿入</span>' : '';
+                const lpSectionBadge = p.lp_section ? `<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">${p.lp_section}</span>` : '';
+                const abBadge = p.ab_version ? `<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[8px] font-bold">Ver:${p.ab_version}</span>` : '';
+
+                return `
+                <div class="group relative bg-white p-5 rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-xl transition-all">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex gap-2 items-center">
+                            <span class="text-[10px] font-bold text-slate-400 mr-1">#${p.id}</span>
+                            <span class="text-[10px] font-mono font-black bg-slate-800 text-white px-2 py-0.5 rounded">${timeStr}</span>
+                            <span class="text-[10px] font-bold border px-2 py-0.5 rounded-full ${typeStyle}">${p.post_type || '未分類'}</span>
+                            ${lpBadge}
+                            ${lpSectionBadge}
+                            ${abBadge}
+                        </div>
+                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="forcePost('${p.id}')" class="p-1.5 hover:bg-green-50 text-slate-300 hover:text-green-600 rounded-lg">🚀</button>
+                            <button onclick="deletePost('${p.id}')" class="p-1.5 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-700 leading-relaxed font-medium mb-3 whitespace-pre-wrap">${p.draft || '(内容なし / No Content)'}</p>
+                    <div class="flex gap-4 items-center">
+                         <div class="text-[10px] text-slate-400 font-bold">🎯 ${p.stage || 'S1'} | ⚡ Clicks: ${p.click_count || 0} | 💰 CV: ${p.cv_count || 0}</div>
+                         <span class="text-[9px] text-slate-300 font-mono italic ml-auto">@${p.ai_model || 'v2'}</span>
+                    </div>
+                </div>
+                `;
+            }).join('') || '<p class="text-center text-slate-400 py-10">No pending posts.</p>';
+
+            // Performance Analysis
+            const statsContainer = document.getElementById('stats-container');
+            if (data.topStages && data.topStages.length > 0) {
+                statsContainer.innerHTML = data.topStages.map(s => `
+                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-xs font-black text-slate-700">${s.name}</span>
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs font-bold text-slate-800">${s.avgLikes}</span>
+                            <span class="text-[10px] text-slate-400 font-bold">平均いいね</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                statsContainer.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center opacity-30 py-8">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">データ収集中</p>
+                        <p class="text-[8px] font-bold text-slate-300 mt-1">※投稿実績、または成約データが必要です</p>
+                    </div>
+                `;
+            }
+
+            // Cron Logs
+            const logsContainer = document.getElementById('cron-logs-container');
+            logsContainer.innerHTML = (data.cronLogs || []).map(l => {
+                const isSuccess = l.status === 'success';
+                const color = isSuccess ? 'text-green-500' : 'text-red-500';
+                const actionLabel = {
+                    'scheduled_post': '投稿実行',
+                    'generate_drafts': '記事生成',
+                    'check_metrics': '指標取得'
+                }[l.action] || l.action;
+
+                return `
+                <div class="border-b border-slate-50 pb-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-black uppercase tracking-tighter">${actionLabel}</span>
+                        <span class="${color} font-black">${l.status.toUpperCase()}</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400 font-bold">
+                        <span>${dayjs(l.timestamp).format('HH:mm:ss')}</span>
+                        <span>${l.processed || 0} 件</span>
+                    </div>
+                </div>
+                `;
+            }).join('') || '<p class="text-center text-slate-300 py-4">ログなし</p>';
+        }
+
+        setInterval(fetchData, 60000);
+        fetchData();
+    </script>
+</body>
+
+</html>
