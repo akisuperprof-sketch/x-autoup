@@ -255,9 +255,21 @@ class SchedulerService {
                 const newRetryCount = (post.retry_count || 0) + 1;
                 const nextStatus = newRetryCount >= 5 ? 'failed' : 'retry';
 
+                // Smart Retry: Modify draft slightly to avoid X's spam/duplicate filters
+                let newDraft = post.draft;
+                const suffixes = [' ✨', ' 🌿', ' 🌸', ' 💠', ' ✅'];
+                if (nextStatus === 'retry') {
+                    // Remove existing suffix if any from previous retry
+                    suffixes.forEach(s => { newDraft = newDraft.replace(s, ''); });
+                    // Add a new one based on retry count to make it unique
+                    newDraft = newDraft.trim() + suffixes[newRetryCount % suffixes.length];
+                    logger.info(`[SMART RETRY] Modified draft for post ${post.id} to avoid filters.`);
+                }
+
                 logger.error(`Failed to post tweet ID: ${post.id}. Retry: ${newRetryCount}`, error);
                 await dataService.updatePost(post.id, {
                     status: nextStatus,
+                    draft: newDraft,
                     retry_count: newRetryCount,
                     last_error: error.message
                 });
