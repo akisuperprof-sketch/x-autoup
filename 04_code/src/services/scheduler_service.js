@@ -106,9 +106,9 @@ class SchedulerService {
                 return false;
             }
 
-            // Measure 1: Look-ahead buffer (Allow posting if scheduled within next 10 minutes)
-            // Combined with 10-min cron, this ensures no post is missed even with jitter.
-            const bufferMS = 10 * 60 * 1000;
+            // Measure 1: Look-ahead buffer (Allow posting if scheduled within next 15 minutes)
+            // Combined with 15-min cron, this ensures no post is missed even with jitter.
+            const bufferMS = 15 * 60 * 1000;
             const isDue = (p.status === 'scheduled' || p.status === 'retry') &&
                 scheduledDateJST.getTime() <= (nowJST.getTime() + bufferMS) &&
                 (p.retry_count || 0) < 5; // Increased retry limit slightly
