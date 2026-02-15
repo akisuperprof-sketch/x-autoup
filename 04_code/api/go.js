@@ -4,7 +4,12 @@ module.exports = async (req, res) => {
     const { pid, type, lp } = req.query;
     const lp_id = lp || 'mini_main';
 
-    let destination = "https://v0-air-future-mini-design.vercel.app/";
+    let baseUrl = "https://v0-air-future-mini-design.vercel.app/";
+    let destination = baseUrl;
+    if (lp && lp !== 'mini_main' && lp !== 'mini_lp') {
+        destination = `${baseUrl}${lp}`;
+    }
+
     if (type === 'biz' || type === 'tob') {
         destination = "https://airfuture.jp/";
     }

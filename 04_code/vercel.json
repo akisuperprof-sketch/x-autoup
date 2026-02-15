@@ -22,6 +22,22 @@
       "destination": "/public/apply.html"
     },
     {
+      "source": "/hayfever",
+      "destination": "/api/go?lp=hayfever"
+    },
+    {
+      "source": "/dental",
+      "destination": "/api/go?lp=dental"
+    },
+    {
+      "source": "/pet",
+      "destination": "/api/go?lp=pet"
+    },
+    {
+      "source": "/3dprinter",
+      "destination": "/api/go?lp=3dprinter"
+    },
+    {
       "source": "/",
       "destination": "/api/go"
     }
