@@ -119,7 +119,42 @@ class SchedulerService {
 
         stats.processed_count = toPost.length;
 
-        if (toPost.length === 0) {
+        // One-Post-Per-Slot Guard: Filter toPost to ensure we only pick the first one for each hour slot
+        const uniqueSlots = [];
+        const filteredToPost = toPost.filter(post => {
+            const scheduledAt = this._parseJST(post.scheduled_at);
+            const slotKey = `${scheduledAt.getFullYear()}-${scheduledAt.getMonth()}-${scheduledAt.getDate()}-${scheduledAt.getHours()}`;
+
+            // Check if we already have a 'posted' item for this slot in the database
+            const alreadyPostedThisSlot = posts.some(p => {
+                const pScheduledAt = this._parseJST(p.scheduled_at);
+                return p.status === 'posted' &&
+                    pScheduledAt.getFullYear() === scheduledAt.getFullYear() &&
+                    pScheduledAt.getMonth() === scheduledAt.getMonth() &&
+                    pScheduledAt.getDate() === scheduledAt.getDate() &&
+                    pScheduledAt.getHours() === scheduledAt.getHours();
+            });
+
+            if (alreadyPostedThisSlot) {
+                logger.info(`[GUARD] Already posted for slot ${post.scheduled_at}. Skipping ID: ${post.id}`);
+                return false;
+            }
+
+            // Also check if we've already picked an item for this slot in CURRENT run's filtered list
+            if (uniqueSlots.includes(slotKey)) {
+                logger.warn(`[GUARD] Multiple scheduled items for same slot ${post.scheduled_at}. Picking only the first one found. Skipping ID: ${post.id}`);
+                return false;
+            }
+            uniqueSlots.push(slotKey);
+            return true;
+        });
+
+        if (filteredToPost.length === 0 && toPost.length > 0) {
+            logger.info('[CRON] All due items for this slot were already posted or deduplicated.');
+            return stats;
+        }
+
+        if (filteredToPost.length === 0) {
             logger.info(`[CRON] No due posts to process. Current JST: ${this._formatJST(nowJST)}`);
             const currentHour = nowJST.getHours();
             if ([8, 12, 20].includes(currentHour)) {
@@ -180,7 +215,7 @@ class SchedulerService {
             }
         }
 
-        for (const post of toPost) {
+        for (const post of filteredToPost) {
             try {
                 // Safety: Daily limit check (hard limit 5)
                 const todayJSTStr = this._formatJST(nowJST).split(' ')[0]; // "2026-02-13"
@@ -256,23 +291,25 @@ class SchedulerService {
                 const targetStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' }).replace(/-/g, '/');
 
                 // Check if posts already exist for this day (at least 3 recommended)
-                const existing = posts.filter(p => (p.status === 'scheduled' || p.status === 'posted' || p.status === 'retry') &&
-                    p.scheduled_at && p.scheduled_at.startsWith(targetStr));
+                const existingInDay = posts.filter(p => {
+                    if (!p.scheduled_at || !['scheduled', 'posted', 'retry'].includes(p.status)) return false;
+                    const pDate = this._parseJST(p.scheduled_at);
+                    return pDate.getFullYear() === targetDate.getFullYear() &&
+                        pDate.getMonth() === targetDate.getMonth() &&
+                        pDate.getDate() === targetDate.getDate();
+                });
 
-                if (existing.length < count) {
-                    const existingTimes = existing.map(p => {
-                        const t = p.scheduled_at.split(' ')[1]; // "08:00:00"
-                        return t.split(':').slice(0, 2).join(':'); // "08:00"
-                    });
+                if (existingInDay.length < count) {
+                    const existingHours = existingInDay.map(p => this._parseJST(p.scheduled_at).getHours());
 
                     const missingSlots = timeSlots.filter(slot => {
-                        const slotShort = slot.split(':').slice(0, 2).join(':');
-                        return !existingTimes.includes(slotShort);
-                    }).slice(0, count - existing.length);
+                        const hour = parseInt(slot.split(':')[0]);
+                        return !existingHours.includes(hour);
+                    }).slice(0, count - existingInDay.length);
 
                     if (missingSlots.length > 0) {
-                        logger.info(`[AUTO-GEN] Found ${existing.length}/${count} posts for ${targetStr}. Filling ${missingSlots.length} missing slots.`);
-                        await this.notifyWebhook(`⚡ 【補充型AI生成】\n${targetStr}の予約が不足（${existing.length}/${count}）していたため、AIが欠けている時間枠（${missingSlots.join(', ')}）を生成しました。`);
+                        logger.info(`[AUTO-GEN] Found ${existingInDay.length}/${count} posts for ${targetStr}. Filling ${missingSlots.length} missing slots.`);
+                        await this.notifyWebhook(`⚡ 【補充型AI生成】\n${targetStr}の予約が不足（${existingInDay.length}/${count}）していたため、AIが欠けている時間枠（${missingSlots.join(', ')}）を生成しました。`);
 
                         const dayOfWeek = targetDate.getDay();
                         const baseStage = ['S5', 'S1', 'S2', 'S3', 'S1', 'S2', 'S4'][dayOfWeek];
@@ -304,7 +341,7 @@ class SchedulerService {
                         stats.processed_count += drafts.length;
                     }
                 } else {
-                    logger.info(`[AUTO-GEN] Sufficient posts (${existing.length}) exist for ${targetStr}. Skipping.`);
+                    logger.info(`[AUTO-GEN] Sufficient posts (${existingInDay.length}) exist for ${targetStr}. Skipping.`);
                 }
             }
 
