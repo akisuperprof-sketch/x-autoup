@@ -1,4 +1,4 @@
-# AirFuture X-Operator System Specification v3.9
+# AirFuture X-Operator System Specification v4.0
 
 ## 1. 目的 (Core Mission)
 X（Twitter）からLP（ランディングページ）への遷移を最大化し、AirFutureの購入成約率（CVR）を極限まで高めること。運用コストを最小化しつつ、データに基づいた「稼げる投稿」を自動で改善し続ける。
@@ -23,8 +23,8 @@ X（Twitter）からLP（ランディングページ）への遷移を最大化�
     - 10分ごとの頻繁なCron実行時でも重複生成を防ぐ hourly ロック機構を搭載。
 - **堅牢な配信ロジック**:
     - **5分バッファ (拡張済)**: 10分周期のCronに最適化し、最大10分の判定バッファを確保。
-    - **時間ゆらぎ (Jitter)** (v3.9): 投稿予約時に0〜7分のランダムな遅延を付与し、ボット検知を回避。
-    - **スロット一意性 (Slot ID)** (v3.9): `YYYYMMDD-HH` 形式のIDによる物理的な重複投稿の阻止。
+    - **スロット一意性 (Slot ID)**: `YYYYMMDD-HH` 形式のIDによる物理的な重複投稿の阻止。
+    - **トラッキング精度 (v4.0)**: アクセスを「Human」「Dev（管理者）」「Bot（機械）」に3分類し、統計からノイズを完全除去。
     - **タスク分離**: 投稿、ドラフト生成、メトリクス集計を独立して実行。
 
 ### 2.3 ガバナンス & 保守ルール (Governance)
@@ -69,5 +69,8 @@ Vercel Hobbyの標準仕様に準拠するため、プロジェクトをフラ�
 - **Hosting**: Vercel (Hobby)
 - **Database**: Google Sheets (Custom Logic via Google Sheet API)
 - **Monitoring**: 独自実装の「System Status」インジケーターによるDB死活監視。
-- **Tracking**: Server-side Logging (Click) + Client-side Gateway (CV)
+- **Tracking (v4.0)**:
+    - **Traffic Categorization**: `is_bot` (Crawler/Preview) / `is_dev` (Admin/Self) / `Human` (Users)
+    - **Noise Exclusion**: Bot/Dev アクセスをメイン統計（PV/CV）から強制除外。
+    - **ID Normalization**: `mini_lp` と `mini_main` の自動名寄せ集計。
 - **Data Integrity**: Slot ID Primary Key (Sheets-based constraint)
