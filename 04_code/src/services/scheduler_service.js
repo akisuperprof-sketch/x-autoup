@@ -106,9 +106,9 @@ class SchedulerService {
                 return false;
             }
 
-            // Measure 1: Look-ahead buffer (Allow posting if scheduled within next 5 minutes)
-            // This prevents missing posts due to slight clock drift or cron timing.
-            const bufferMS = 5 * 60 * 1000;
+            // Measure 1: Look-ahead buffer (Allow posting if scheduled within next 10 minutes)
+            // Combined with 10-min cron, this ensures no post is missed even with jitter.
+            const bufferMS = 10 * 60 * 1000;
             const isDue = (p.status === 'scheduled' || p.status === 'retry') &&
                 scheduledDateJST.getTime() <= (nowJST.getTime() + bufferMS) &&
                 (p.retry_count || 0) < 5; // Increased retry limit slightly
@@ -196,12 +196,16 @@ class SchedulerService {
 
                         const result = await xService.postTweet(emergencyPost.draft);
 
+                        const randomSeconds = Math.floor(Math.random() * 60);
+                        const randomMins = Math.floor(Math.random() * 5); // Add minor offset even for emergency
+                        const scheduledTime = this._formatJST(nowJST).split(' ')[1]; // Current time like 08:02:15
+
                         await dataService.addPost({
                             ...emergencyPost,
                             status: 'posted',
                             tweet_id: result.id,
                             posted_at: new Date().toISOString(),
-                            scheduled_at: this._formatJST(nowJST).split(' ')[0].replace(/-/g, '/') + ` ${currentHour}:00:00`
+                            scheduled_at: this._formatJST(nowJST).split(' ')[0].replace(/-/g, '/') + ` ${scheduledTime}`
                         });
 
                         await this.notifyWebhook(`🚨 【緊急自動生成】\n${currentHour}時用の予約がなかったため、AIがその場で記事を生成して投稿を完了しました。`);
@@ -314,14 +318,15 @@ class SchedulerService {
                         const dayOfWeek = targetDate.getDay();
                         const baseStage = ['S5', 'S1', 'S2', 'S3', 'S1', 'S2', 'S4'][dayOfWeek];
 
+                        const recentPosts = posts.slice(-10); // Provide last 10 for diversity
                         const context = {
                             season: this._getSeason(targetDate),
                             trend: 'Automated Daily Fill-in',
                             count: missingSlots.length,
                             targetStage: baseStage,
-                            productMentionAllowed: true
+                            productMentionAllowed: true,
+                            recentPosts: recentPosts
                         };
-
                         const drafts = await contentGeneratorService.generateDrafts(context, { ...dictionaries, templates, patterns });
 
                         for (let i = 0; i < drafts.length; i++) {
@@ -329,10 +334,16 @@ class SchedulerService {
                             const rotatedStage = stages[(dayOfWeek + i) % stages.length];
                             const abVersion = i % 2 === 0 ? 'A' : 'B';
 
+                            // Level 2: Time Jitter (Add 0-7 minutes random delay)
+                            const [h, m, s] = time.split(':');
+                            const baseTime = new Date(`${targetStr.replace(/\//g, '-')}T${h}:${m}:${s}+09:00`);
+                            const jitteredDate = new Date(baseTime.getTime() + Math.floor(Math.random() * 8 * 60 * 1000));
+                            const jitteredTime = this._formatJST(jitteredDate).split(' ')[1];
+
                             const result = await dataService.addPost({
                                 ...drafts[i],
                                 status: 'scheduled',
-                                scheduled_at: `${targetStr} ${time}`,
+                                scheduled_at: `${targetStr} ${jitteredTime}`,
                                 stage: drafts[i].stage || rotatedStage,
                                 ab_version: drafts[i].ab_version || abVersion
                             });
