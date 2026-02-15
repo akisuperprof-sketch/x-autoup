@@ -17,29 +17,23 @@ module.exports = async (req, res) => {
     try {
         await dataService.init();
 
-        // Multi-action support from query param or default sequence
+        // Primary Execution: Posting (High Priority)
+        // Default behavior (no action param) is ONLY to process scheduled posts to save API quota
         const action = req.query.action || 'scheduled_post';
 
-        // Primary Execution: Posting (High Priority)
-        try {
+        if (action === 'scheduled_post') {
+            try {
+                await schedulerService.runCronSequence('scheduled_post');
+            } catch (e) {
+                logger.error('Scheduled post task failed in Cron sequence', e);
+            }
+        } else if (action === 'all') {
+            // "all" still exists if manually triggered or specially configured
             await schedulerService.runCronSequence('scheduled_post');
-        } catch (e) {
-            logger.error('Scheduled post task failed in Cron sequence', e);
-        }
-
-        // Secondary Executions (Lower Priority/Heavier Tasks)
-        if (action === 'all' || !req.query.action) {
-            try {
-                await schedulerService.runCronSequence('generate_drafts');
-            } catch (e) {
-                logger.error('Generate drafts task failed in Cron sequence', e);
-            }
-            try {
-                await schedulerService.runCronSequence('check_metrics');
-            } catch (e) {
-                logger.error('Check metrics task failed in Cron sequence', e);
-            }
-        } else if (action !== 'scheduled_post') {
+            await schedulerService.runCronSequence('generate_drafts');
+            await schedulerService.runCronSequence('check_metrics');
+        } else {
+            // Specific action like generate_drafts or check_metrics
             await schedulerService.runCronSequence(action);
         }
 
