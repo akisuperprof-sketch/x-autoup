@@ -112,7 +112,8 @@ class ContentGeneratorService {
         MISSION: Maximize CV from X to LP.
 
         **STRATEGY & TONE:**
-        - **Tone**: Professional yet empathetic. AVOID overusing "マジ" (Maji). Use diverse emotional and scientific expressions.
+        // Tone: Professional yet empathetic. AVOID repeating keywords/phrases from recent posts. Use diverse emotional and scientific expressions.
+        // Similarity Guard: Do not use the same start phrases or hooks as previous posts.
         - **Emoji Rule**: STRICTLY MAX 3 Emojis per post.
         - **Character Length**: Target 100 to 115 Japanese characters. Do not be shorter than 100. Aim for high density and depth.
         - **Stage Rotation**: If generating many posts, ensure a mix of S1 (Awareness), S2 (Interest), S3 (Proof), S4 (Action).
@@ -135,6 +136,7 @@ class ContentGeneratorService {
         - Base Theme: ${targetStage} (S1-S5)
         - Target Enemy: ${enemyList}
         - Knowledge: ${memoContent || 'Medical-grade ion cluster technology.'}
+        ${context.recentPosts ? `\n**RECENT POSTS (TO AVOID SIMILARITY):**\n${context.recentPosts.map(p => `- ${p.draft}`).join('\n')}` : ''}
         ${templates ? `\n**TEMPLATES:**\n${templates}` : ''}
 
         **NICHE TARGETING & LP URLS:**
@@ -156,7 +158,8 @@ class ContentGeneratorService {
            - **PLACEMENT**: For high priority (lp_priority: high), use "詳細は [URL] で✨". For low priority, use "詳細はプロフィールから✨".
            - **STRICT**: Only use the specific URLs listed above. NEVER use /go endpoints or query parameters in post text.
            - No anxiety-inducing words.
-        7. No "AI greetings".
+        7. **DIVERSITY**: Ensure each of the ${count} posts has a different focus, target audience, or emotional angle.
+        8. No "AI greetings".
 
         ** OUTPUT FORMAT(JSON Only):**
             [

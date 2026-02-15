@@ -1,4 +1,4 @@
-# AirFuture X-Operator System Specification v3.8
+# AirFuture X-Operator System Specification v3.9
 
 ## 1. 目的 (Core Mission)
 X（Twitter）からLP（ランディングページ）への遷移を最大化し、AirFutureの購入成約率（CVR）を極限まで高めること。運用コストを最小化しつつ、データに基づいた「稼げる投稿」を自動で改善し続ける。
@@ -22,9 +22,10 @@ X（Twitter）からLP（ランディングページ）への遷移を最大化�
     - 投稿実行時に該当枠の予約が0件だった場合、その場でAIが1記事を生成し、即座に投稿を完了させる。
     - 10分ごとの頻繁なCron実行時でも重複生成を防ぐ hourly ロック機構を搭載。
 - **堅牢な配信ロジック**:
-    - **5分バッファ**: 時刻の微差による投稿漏れを防止。
-    - **タスク分離**: 投稿、ドラフト生成、メトリクス集計を独立して実行し、一部の失敗が全体に波及しないように設計。
-    - **期限切れロックの自動上書き**: 前回のプロセスが異常終了した場合でも自動復旧。
+    - **5分バッファ (拡張済)**: 10分周期のCronに最適化し、最大10分の判定バッファを確保。
+    - **時間ゆらぎ (Jitter)** (v3.9): 投稿予約時に0〜7分のランダムな遅延を付与し、ボット検知を回避。
+    - **スロット一意性 (Slot ID)** (v3.9): `YYYYMMDD-HH` 形式のIDによる物理的な重複投稿の阻止。
+    - **タスク分離**: 投稿、ドラフト生成、メトリクス集計を独立して実行。
 
 ### 2.3 ガバナンス & 保守ルール (Governance)
 - **構成の固定**: 本リポジトリは Vercel の Root Directory 設定に基づき、**`04_code/`** を開発・実行の正会員とする。
@@ -69,3 +70,4 @@ Vercel Hobbyの標準仕様に準拠するため、プロジェクトをフラ�
 - **Database**: Google Sheets (Custom Logic via Google Sheet API)
 - **Monitoring**: 独自実装の「System Status」インジケーターによるDB死活監視。
 - **Tracking**: Server-side Logging (Click) + Client-side Gateway (CV)
+- **Data Integrity**: Slot ID Primary Key (Sheets-based constraint)
