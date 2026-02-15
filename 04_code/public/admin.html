@@ -635,15 +635,16 @@
                 lpConfig.forEach(conf => {
                     const clone = template.content.cloneNode(true);
                     // Combine mini_lp and mini_main for the MAIN card
-                    let pv = (sourceClicks[conf.id] || 0);
+                    let basePV = (sourceClicks[conf.id] || 0);
                     let cvData = { ...(sourceCV[conf.id] || { count: 0, revenue: 0 }) };
 
                     if (conf.id === 'mini_lp') {
-                        pv += (sourceClicks['mini_main'] || 0);
+                        basePV += (sourceClicks['mini_main'] || 0);
                         const mainCv = sourceCV['mini_main'] || { count: 0, revenue: 0 };
                         cvData.count += (mainCv.count || 0);
                         cvData.revenue += (mainCv.revenue || 0);
                     }
+                    const pv = basePV;
 
                     const cv = cvData.count || 0;
                     const cvr = pv > 0 ? ((cv / pv) * 100).toFixed(1) : '0.0';
