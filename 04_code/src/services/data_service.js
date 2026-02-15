@@ -77,6 +77,7 @@ class DataService {
             cv_count: parseInt(row.get('cv_count') || '0'),
             lp_section: row.get('lp_section'),
             ab_version: row.get('ab_version'),
+            slot_id: row.get('slot_id'),
             _row: row
         };
     }
@@ -112,6 +113,43 @@ class DataService {
             }
         }
 
+        // --- PRIMARY KEY: Slot ID Guard ---
+        let slot_id = post.slot_id;
+        if (!slot_id && post.scheduled_at) {
+            // Generate standard slot_id: YYYYMMDD-HH (e.g., 20260216-08)
+            const parts = post.scheduled_at.match(/(\d+).(\d+).(\d+)\s+(\d+)/);
+            if (parts) {
+                const [, y, m, d, h] = parts;
+                slot_id = `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}-${h.padStart(2, '0')}`;
+            }
+        }
+
+        if (slot_id) {
+            const alreadyExists = posts.some(p => {
+                const targetStatus = ['scheduled', 'posted', 'retry'].includes(p.status);
+                if (!targetStatus) return false;
+
+                // Priority 1: Match by explicit slot_id
+                if (p.slot_id === slot_id) return true;
+
+                // Priority 2: Fallback for old rows missing slot_id
+                if (!p.slot_id && p.scheduled_at) {
+                    const pParts = p.scheduled_at.match(/(\d+).(\d+).(\d+)\s+(\d+)/);
+                    if (pParts) {
+                        const [, py, pm, pd, ph] = pParts;
+                        const pSlotId = `${py}${pm.padStart(2, '0')}${pd.padStart(2, '0')}-${ph.padStart(2, '0')}`;
+                        return pSlotId === slot_id;
+                    }
+                }
+                return false;
+            });
+
+            if (alreadyExists) {
+                logger.warn(`Skipping post creation: Slot ${slot_id} already has a valid post.`);
+                return { skipped: true, reason: 'slot_taken', slot_id };
+            }
+        }
+
         const newId = posts.length > 0
             ? (Math.max(...posts.map(p => parseInt(p.id) || 0)) + 1).toString()
             : '100001';
@@ -121,6 +159,7 @@ class DataService {
             id: post.id || newId,
             status: post.status || 'draft_ai',
             dedupe_hash: dedupe_hash,
+            slot_id: slot_id || '',
             hashtags: JSON.stringify(post.hashtags || []),
             created_at: now,
             updated_at: now,
@@ -135,7 +174,18 @@ class DataService {
 
         if (this.useSheets) {
             try {
-                // Ensure Sheets compatibility for 'c' column if 'id' is used as 'c' in current sheet
+                // Ensure slot_id column exists
+                const postsHeaders = [
+                    'id', 'status', 'scheduled_at', 'draft', 'stage', 'enemy', 'season',
+                    'hashtags', 'cta_type', 'media_type', 'media_prompt', 'dedupe_hash',
+                    'priority', 'retry_count', 'last_error', 'tweet_id', 'posted_at',
+                    'metrics_like', 'metrics_rt', 'metrics_reply', 'metrics_checked_at_1h',
+                    'metrics_checked_at_24h', 'created_at', 'updated_at', 'ai_model',
+                    'lp_priority', 'post_type', 'click_count', 'cv_count', 'lp_section',
+                    'ab_version', 'slot_id'
+                ];
+                await googleSheetService.ensureSheet('posts', postsHeaders);
+
                 const rows = await googleSheetService.getRows('posts');
                 const headers = rows.length > 0 ? rows[0]._worksheet.headerValues : [];
                 if (!headers.includes('id') && headers.includes('c')) {
