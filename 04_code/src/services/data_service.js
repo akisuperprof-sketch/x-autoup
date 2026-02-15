@@ -426,13 +426,10 @@ class DataService {
     }
 
     async getVisitorInfo(ip_hash, ip, ua, ref) {
-        if (!this.useSheets) return { label: 'LocalVisitor', is_dev: true };
+        if (!this.useSheets) return { label: 'LocalVisitor', is_dev: true, is_bot: false };
 
-        // 開発者/システムのIP判別 (簡易)
-        const isVercel = ua && ua.toLowerCase().includes('vercel');
         const isAdmin = ref && ref.includes('admin.html');
         const isBot = this.isBot(ua, ref);
-        const isDevDefault = isVercel || isAdmin || isBot;
 
         try {
             await googleSheetService.ensureSheet('visitors', ['ip_hash', 'visitor_index', 'label', 'first_seen', 'last_ts', 'is_dev', 'ua']);
@@ -444,12 +441,12 @@ class DataService {
                 await row.save();
                 return {
                     label: row.get('label'),
-                    is_dev: row.get('is_dev') === 'TRUE' || isDevDefault
+                    is_dev: row.get('is_dev') === 'TRUE' || isAdmin,
+                    is_bot: isBot
                 };
             } else {
                 const nextIndex = rows.length + 1;
                 const label = `訪問者 #${nextIndex}`;
-                const isDev = isDevDefault;
 
                 await googleSheetService.addRow('visitors', {
                     ip_hash,
@@ -457,14 +454,14 @@ class DataService {
                     label: label,
                     first_seen: this._getJSTTimestamp(),
                     last_ts: this._getJSTTimestamp(),
-                    is_dev: isDev ? 'TRUE' : 'FALSE',
+                    is_dev: isAdmin ? 'TRUE' : 'FALSE',
                     ua: ua || ''
                 });
-                return { label: label, is_dev: isDev };
+                return { label: label, is_dev: isAdmin, is_bot: isBot };
             }
         } catch (e) {
             logger.warn('Error management visitors sheet', e.message);
-            return { label: 'Unknown', is_dev: false };
+            return { label: 'Unknown', is_dev: isAdmin, is_bot: isBot };
         }
     }
 
@@ -484,7 +481,7 @@ class DataService {
     async ensureLogHeaderExplanation() {
         if (!this.useSheets) return;
         try {
-            const sheet = this.doc ? this.doc.sheetsByTitle['logs'] : await googleSheetService.ensureSheet('logs', ['ts', 'post_id', 'action', 'pid', 'visitor_label', 'lp_name', 'lp_id', 'dest_url', 'ref', 'is_bot', 'revenue', 'order_id', 'ip_hash', 'ua', 'data']);
+            const sheet = this.doc ? this.doc.sheetsByTitle['logs'] : await googleSheetService.ensureSheet('logs', ['ts', 'post_id', 'action', 'pid', 'visitor_label', 'lp_name', 'lp_id', 'dest_url', 'ref', 'is_bot', 'is_dev', 'revenue', 'order_id', 'ip_hash', 'ua', 'data']);
             const rows = await sheet.getRows({ offset: 0, limit: 1 });
 
             // 2行目（rows[0]）が説明行かチェック
@@ -501,6 +498,7 @@ class DataService {
                     dest_url: '遷移先URL',
                     ref: 'リファラ',
                     is_bot: 'Bot判定',
+                    is_dev: 'Dev判定',
                     revenue: '収益額',
                     order_id: '注文ID',
                     ip_hash: '識別ハッシュ',
@@ -552,7 +550,8 @@ class DataService {
             ref: data.ref || '',
             ua: data.ua || '',
             ip_hash: ipHash,
-            is_bot: (data.is_bot || vInfo.is_dev) ? 'TRUE' : 'FALSE',
+            is_bot: (data.is_bot || vInfo.is_bot) ? 'TRUE' : 'FALSE',
+            is_dev: vInfo.is_dev ? 'TRUE' : 'FALSE',
             revenue: parseFloat(data.revenue || 0),
             order_id: data.order_id || '',
             data: data.data ? JSON.stringify(data.data) : ''

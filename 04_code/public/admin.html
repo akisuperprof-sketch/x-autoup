@@ -196,7 +196,8 @@
                     </select>
                     <div class="flex items-center gap-2 px-2">
                         <input type="checkbox" id="show-bots" onchange="tryFetch()" class="w-3 h-3 cursor-pointer">
-                        <label for="show-bots" class="text-[9px] font-black text-slate-400 uppercase cursor-pointer">すべてのアクセスを表示</label>
+                        <label for="show-bots"
+                            class="text-[9px] font-black text-slate-400 uppercase cursor-pointer">すべてのアクセスを表示</label>
                     </div>
                 </div>
 
@@ -587,18 +588,18 @@
 
             lpConfig.forEach(conf => {
                 const clone = template.content.cloneNode(true);
-                // Also handle 'mini_main' for backward compatibility
-                let pv = sourceClicks[conf.id] || 0;
-                let cvData = sourceCV[conf.id] || { count: 0 };
-                
+                // Combine mini_lp and mini_main for the MAIN card
+                let pv = (sourceClicks[conf.id] || 0);
+                let cvData = { ...(sourceCV[conf.id] || { count: 0, revenue: 0 }) };
+
                 if (conf.id === 'mini_lp') {
                     pv += (sourceClicks['mini_main'] || 0);
-                    const mainCv = sourceCV['mini_main'] || { count: 0 };
+                    const mainCv = sourceCV['mini_main'] || { count: 0, revenue: 0 };
                     cvData.count += (mainCv.count || 0);
                     cvData.revenue += (mainCv.revenue || 0);
                 }
 
-                const cv = typeof cvData === 'object' ? cvData.count : cvData;
+                const cv = cvData.count || 0;
                 const cvr = pv > 0 ? ((cv / pv) * 100).toFixed(1) : '0.0';
 
                 clone.querySelector('.lp-icon').innerText = conf.icon;
@@ -613,13 +614,19 @@
 
                 if (cv > 0) {
                     const pill = clone.querySelector('.lp-cv-label').parentElement;
-                    pill.className = `flex-1 bg-${conf.accent.split('-')[1]}-50 border border-${conf.accent.split('-')[1]}-100 px-3 py-1.5 rounded-full flex items-center justify-between`;
-                    clone.querySelector('.lp-cv-label').className = `text-[8px] font-black text-${conf.accent.split('-')[1]}-600`;
-                    clone.querySelector('.lp-cvr').className = `text-[8px] font-black text-${conf.accent.split('-')[1]}-400`;
+                    const color = conf.accent.split('-')[1];
+                    pill.className = `flex-1 bg-${color}-50 border border-${color}-100 px-3 py-1.5 rounded-full flex items-center justify-between`;
+                    clone.querySelector('.lp-cv-label').className = `text-[8px] font-black text-${color}-600`;
+                    clone.querySelector('.lp-cvr').className = `text-[8px] font-black text-${color}-400`;
                 }
 
                 cardsContainer.appendChild(clone);
             });
+
+            // Update Internal Status Info
+            const internal = kpi.internal || { bot_clicks: 0, dev_clicks: 0 };
+            const statusLabel = document.getElementById('storage-status');
+            statusLabel.innerHTML = `LIVE | <span class="text-indigo-400">DEV: ${internal.dev_clicks}</span> | <span class="text-slate-500">BOT: ${internal.bot_clicks}</span>`;
 
             const allSources = new Set([...Object.keys(sourceClicks), ...Object.keys(sourceCV)]);
             document.getElementById('source-breakdown-body').innerHTML = Array.from(allSources).map(src => {

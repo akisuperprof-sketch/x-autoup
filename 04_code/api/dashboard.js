@@ -39,6 +39,8 @@ module.exports = async (req, res) => {
             cutoffDate = new Date(nowJST.getTime() - 30 * 24 * 60 * 60 * 1000);
         }
 
+        const kpi = { internal: { bot_clicks: 0, dev_clicks: 0 } };
+
         if (dataService.useSheets) {
             try {
                 const logRows = await googleSheetService.getRows('logs');
@@ -47,29 +49,28 @@ module.exports = async (req, res) => {
                     const action = row.get('action');
                     const row_lp = row.get('lp_id') || 'default_lp';
                     const row_is_bot = row.get('is_bot') === 'TRUE';
+                    const row_is_dev = row.get('is_dev') === 'TRUE';
                     const row_ts_str = row.get('ts') || row.get('timestamp');
                     const row_revenue = parseFloat(row.get('revenue') || 0);
 
-                    // Filters
-                    if (isHumanOnly && row_is_bot) return;
-                    // Note: We don't filter by LP for the Breakdown aggregation to show all sources,
-                    // but for Total Stats matching the filter, we might need to.
-                    // However, usually breakdown shows *distribution* of the total.
-                    // If filter is 'all', show all. If filter is specific, the breakdown is trivial (100% that source).
-                    // So we only apply date filter here for the source breakdown, and strictly enforce LP filter for specific post stats?
-                    // Let's stick to the requested behavior: "Filter" applies to the view.
-
+                    // Date filter
                     if (cutoffDate && row_ts_str) {
                         const row_date = new Date(row_ts_str.replace(' ', 'T'));
                         if (row_date < cutoffDate) return;
                     }
 
-                    // For the Source Breakdown, we want to see ALL sources regardless of the "LP Filter" unless the user explicitly filtered.
-                    // But if selectedLP is set, the user *wants* to see only that LP.
-                    // So we apply the filter as usual.
+                    // Internal stats (always aggregate even if excluded from main view)
+                    if (!kpi.internal) kpi.internal = { bot_clicks: 0, dev_clicks: 0 };
+                    if (row_is_bot && action === 'click') kpi.internal.bot_clicks++;
+                    if (row_is_dev && action === 'click') kpi.internal.dev_clicks++;
+
+                    // Main Filter: Skip bots and devs for the rest of the logic
+                    if (row_is_bot || row_is_dev) return;
+
+                    // LP Filter (Optional for specific views)
                     if (selectedLP !== 'all' && row_lp !== selectedLP) return;
 
-                    // Source Breakdown Aggregation
+                    // Source Breakdown Aggregation (Human Only)
                     if (!clicksBySource[row_lp]) clicksBySource[row_lp] = 0;
                     if (!cvBySource[row_lp]) cvBySource[row_lp] = { count: 0, revenue: 0 };
 
@@ -107,21 +108,21 @@ module.exports = async (req, res) => {
         const twentyFourHoursAgo = new Date(nowJST.getTime() - 24 * 60 * 60 * 1000);
         const todayStart = new Date(nowJST.getFullYear(), nowJST.getMonth(), nowJST.getDate());
 
-        const kpi = {
+        Object.assign(kpi, {
             queued: posts.filter(p => p.status === 'scheduled' || p.status === 'draft_ai').length,
             posted_total: posts.filter(p => p.status === 'posted').length,
             posted_today: posts.filter(p => p.status === 'posted' && p.posted_at && new Date(p.posted_at.replace(' ', 'T')) >= todayStart).length,
             failed_24h: posts.filter(p => (p.status === 'failed' || p.last_error) && p.updated_at && new Date(p.updated_at) >= twentyFourHoursAgo).length,
-            autopost_status: 'ACTIVE', // Standardize to ACTIVE for UI
+            autopost_status: 'ACTIVE',
             total_clicks: totalClicks,
             total_cv: totalCV,
             total_revenue: totalRevenue,
             epc,
             aov,
             cvr,
-            clicks_by_source: clicksBySource, // { 'mini_main': 10, ... }
-            cv_by_source: cvBySource // { 'mini_main': { count: 5, revenue: 5000 }, ... }
-        };
+            clicks_by_source: clicksBySource,
+            cv_by_source: cvBySource
+        });
 
         // Analysis: Top Stages
         const stagePerformance = {};
