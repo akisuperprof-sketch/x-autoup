@@ -41,9 +41,10 @@ module.exports = async (req, res) => {
 
         const kpi = { internal: { bot_clicks: 0, dev_clicks: 0 } };
 
+        let logRows = [];
         if (dataService.useSheets) {
             try {
-                const logRows = await googleSheetService.getRows('logs');
+                logRows = await googleSheetService.getRows('logs');
                 logRows.forEach(row => {
                     const row_pid = row.get('post_id') || row.get('pid');
                     const action = row.get('action');
@@ -59,12 +60,12 @@ module.exports = async (req, res) => {
                         if (row_date < cutoffDate) return;
                     }
 
-                    // Internal stats (always aggregate even if excluded from main view)
-                    if (!kpi.internal) kpi.internal = { bot_clicks: 0, dev_clicks: 0 };
+                    // Internal stats
+                    if (!kpi.internal) kpi.internal = { bot_clicks: 0, dev_clicks: 0 }; // This line is redundant now as kpi.internal is initialized above
                     if (row_is_bot && action === 'click') kpi.internal.bot_clicks++;
                     if (row_is_dev && action === 'click') kpi.internal.dev_clicks++;
 
-                    // Main Filter: Skip bots and devs for the rest of the logic
+                    // Main Filter: Skip bots and devs
                     if (row_is_bot || row_is_dev) return;
 
                     // LP Filter (Optional for specific views)
@@ -126,8 +127,12 @@ module.exports = async (req, res) => {
 
         // Analysis: Visitor Journeys (Reconstruct sequence per visitor)
         const journeysByVisitor = {};
-        const sortedLogs = [...logRows].filter(r => r.get('action') === 'click')
-            .sort((a, b) => new Date(a.get('ts')) - new Date(b.get('ts')));
+        const sortedLogs = [...logRows].filter(r => {
+            const ts = r.get('ts');
+            return r.get('action') === 'click' && ts && ts !== '記録日時';
+        }).sort((a, b) => {
+            return new Date(a.get('ts')) - new Date(b.get('ts'));
+        });
 
         sortedLogs.forEach(row => {
             const visitor = row.get('visitor_label');
