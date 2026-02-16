@@ -434,9 +434,12 @@ class DataService {
         try {
             await googleSheetService.ensureSheet('visitors', ['ip_hash', 'visitor_index', 'label', 'first_seen', 'last_ts', 'is_dev', 'ua']);
             const rows = await googleSheetService.getRows('visitors');
+
+            // 重要: IPハッシュが一致する既存の訪問者を検索
             let row = rows.find(r => r.get('ip_hash') === ip_hash);
 
             if (row) {
+                // 既存の訪問者の場合、タイムスタンプのみ更新して同じラベルを返す
                 row.set('last_ts', this._getJSTTimestamp());
                 await row.save();
                 return {
@@ -445,6 +448,7 @@ class DataService {
                     is_bot: isBot
                 };
             } else {
+                // 新規訪問者の場合、新しいインデックスを割り当て
                 const nextIndex = rows.length + 1;
                 const label = `訪問者 #${nextIndex}`;
 

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AirFuture Premium Analytics v5.1</title>
+    <title>AirFuture Premium Analytics v5.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
     <link
@@ -70,7 +70,7 @@
 </head>
 
 <body class="p-4 gap-4 flex flex-col h-screen">
-    <!-- Auth Overlay -->
+    <!-- 認証オーバーレイ -->
     <div id="auth-overlay"
         class="fixed inset-0 bg-slate-900/40 backdrop-blur-2xl z-[9999] flex items-center justify-center p-6">
         <div
@@ -79,23 +79,23 @@
                 class="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-indigo-200">
                 <span class="text-3xl font-black text-white">AF</span>
             </div>
-            <h2 class="text-2xl font-black mb-1">Access Portal</h2>
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em] mb-10">Admin Infrastructure v5.1
+            <h2 class="text-2xl font-black mb-1">管理者ポータル</h2>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em] mb-10">Admin Infrastructure v5.5
             </p>
-            <input type="password" id="admin-pw" placeholder="PASSWORD"
+            <input type="password" id="admin-pw" placeholder="パスワードを入力"
                 class="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl px-8 py-5 mb-4 focus:border-indigo-500 outline-none transition-all font-mono text-center text-lg">
             <button onclick="checkAuth()"
                 class="w-full bg-indigo-600 text-white font-black py-5 rounded-3xl hover:bg-slate-900 transition-all active:scale-95 shadow-xl shadow-indigo-100">
-                Unlock System
+                ログイン
             </button>
         </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- メインコンテンツ -->
     <div id="main-content"
         class="hidden-auth opacity-0 flex-1 flex flex-col gap-4 overflow-hidden max-w-[1600px] mx-auto w-full">
 
-        <!-- Header -->
+        <!-- ヘッダー -->
         <header class="flex justify-between items-center shrink-0">
             <div class="flex items-center gap-4">
                 <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -103,15 +103,15 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-black tracking-tighter leading-none">AIRFUTURE <span
-                            class="text-indigo-600">PREMIUM</span></h1>
+                            class="text-indigo-600">管理パネル</span></h1>
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5"
-                        id="storage-status">Connecting...</p>
+                        id="storage-status">同期中...</p>
                 </div>
             </div>
             <div class="flex items-center gap-4">
                 <div id="ops-status-container"
                     class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200">
-                    STATUS: <span id="ops-status">ACTIVE</span>
+                    状態: <span id="ops-status">稼働中</span>
                 </div>
                 <button onclick="logout()"
                     class="p-2 hover:bg-white rounded-2xl transition text-slate-300 hover:text-rose-500">
@@ -124,55 +124,53 @@
             </div>
         </header>
 
-        <!-- Body -->
+        <!-- ボディ -->
         <div class="flex-1 flex flex-col gap-4 overflow-hidden">
 
-            <!-- Top Segment: Operations -->
+            <!-- 上段: オペレーション -->
             <div class="h-[28%] flex gap-4 shrink-0">
                 <div class="w-[24%] flex flex-col gap-3">
                     <div class="flex-1 glass rounded-[32px] p-5 flex items-center justify-around">
                         <div class="text-center">
-                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Queue</p>
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">予約済み</p>
                             <p id="ops-queued" class="text-4xl font-black tracking-tighter">0</p>
                         </div>
                         <div class="w-px h-12 bg-slate-200/50"></div>
                         <div class="text-center">
-                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Done</p>
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">完了</p>
                             <p id="ops-today" class="text-4xl font-black tracking-tighter">0</p>
                         </div>
                     </div>
                     <div
                         class="h-16 bg-slate-900 rounded-[28px] flex items-center justify-between px-5 shadow-xl relative overflow-hidden group">
-                        <span class="text-[10px] font-black text-white/90 z-10 tracking-widest">ENGINE</span>
+                        <span class="text-[10px] font-black text-white/90 z-10 tracking-widest">エンジン</span>
                         <div class="flex gap-2 z-10">
                             <button onclick="triggerCron('scheduled_post')"
-                                class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-[9px] font-black text-white transition-all">Verify</button>
+                                class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-[9px] font-black text-white transition-all">手動実行</button>
                             <button onclick="openGenerateModal()"
-                                class="bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-[9px] font-black shadow-lg hover:shadow-indigo-500/50 transition-all active:scale-95">AI
-                                GEN</button>
+                                class="bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-[9px] font-black shadow-lg hover:shadow-indigo-500/50 transition-all active:scale-95">AI生成</button>
                         </div>
                     </div>
                 </div>
-                <!-- Queue Detail -->
+                <!-- 配信予約詳細 -->
                 <div class="flex-1 glass rounded-[40px] overflow-hidden flex flex-col">
                     <div class="px-8 py-3 bp-border-b bg-white/40 flex justify-between items-center">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Incoming Queue
-                            Management</span>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">配信予約キュー管理</span>
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="show-bots" onchange="tryFetch()"
                                 class="w-3 h-3 rounded text-indigo-600">
                             <label for="show-bots"
-                                class="text-[9px] font-black text-slate-300 uppercase cursor-pointer">Live Logs</label>
+                                class="text-[9px] font-black text-slate-300 uppercase cursor-pointer">Botログを表示</label>
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto px-4">
                         <table class="w-full text-left">
                             <thead class="bg-white/50 sticky top-0 z-10">
                                 <tr class="text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                                    <th class="py-3">Schedule</th>
+                                    <th class="py-3">配信予定</th>
                                     <th class="py-3">ID</th>
-                                    <th class="py-3">Draft Preview</th>
-                                    <th class="py-3 text-right">Actions</th>
+                                    <th class="py-3">本文プレビュー</th>
+                                    <th class="py-3 text-right">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="queue-table-body" class="divide-y divide-slate-100/50 text-[10px]"></tbody>
@@ -181,7 +179,7 @@
                 </div>
             </div>
 
-            <!-- Middle Segment: LP Performance -->
+            <!-- 中段: LPパフォーマンス -->
             <div id="lp-cards-container" class="h-[16%] flex gap-3 shrink-0 invisible">
                 <template id="lp-card-template">
                     <div
@@ -194,11 +192,11 @@
                         </div>
                         <div class="w-full grid grid-cols-2 pt-2 border-t border-slate-100/50 mt-1 text-center">
                             <div class="border-r border-slate-100/50">
-                                <p class="text-[7px] text-slate-300 font-black uppercase">cv</p>
+                                <p class="text-[7px] text-slate-300 font-black uppercase">成約</p>
                                 <p class="text-[11px] font-black lp-cv-label">0</p>
                             </div>
                             <div>
-                                <p class="text-[7px] text-slate-300 font-black uppercase">rate</p>
+                                <p class="text-[7px] text-slate-300 font-black uppercase">率</p>
                                 <p class="text-[11px] font-black lp-cvr text-indigo-600">0%</p>
                             </div>
                         </div>
@@ -208,28 +206,27 @@
                 </template>
             </div>
 
-            <!-- Bottom Segment: Deep Analytics -->
+            <!-- 下段: 詳細分析 -->
             <div class="flex-1 flex gap-4 min-h-0">
-                <!-- KPI Sidebar -->
+                <!-- KPIサイドバー -->
                 <div class="w-[24%] flex flex-col gap-4">
                     <div class="grid grid-cols-2 gap-2">
                         <div class="glass p-3 rounded-[24px]">
-                            <p class="text-[8px] font-black text-slate-400 uppercase mb-1">Clicks</p>
+                            <p class="text-[8px] font-black text-slate-400 uppercase mb-1">クリック数</p>
                             <p id="kpi-clicks" class="text-lg font-black tracking-tighter">0</p>
                         </div>
                         <div class="bg-indigo-600/5 p-3 rounded-[24px] border border-indigo-600/10">
-                            <p class="text-[8px] font-black text-indigo-400 uppercase mb-1">CV</p>
+                            <p class="text-[8px] font-black text-indigo-400 uppercase mb-1">成約件数</p>
                             <p id="kpi-cv" class="text-lg font-black text-indigo-700 tracking-tighter">0</p>
                         </div>
                         <div class="glass p-3 rounded-[24px]">
-                            <p class="text-[8px] font-black text-slate-400 uppercase mb-1">Avg CVR</p>
+                            <p class="text-[8px] font-black text-slate-400 uppercase mb-1">平均CVR</p>
                             <p id="kpi-cvr" class="text-lg font-black text-indigo-600 tracking-tighter">0%</p>
                         </div>
                         <div class="bg-emerald-600/5 p-3 rounded-[24px] border border-emerald-600/10">
-                            <p class="text-[8px] font-black text-emerald-400 uppercase mb-1">Revenue</p>
+                            <p class="text-[8px] font-black text-emerald-400 uppercase mb-1">収益</p>
                             <p id="kpi-revenue" class="text-lg font-black text-emerald-700 tracking-tighter">¥0</p>
                         </div>
-                        <!-- Hidden for logic compatibility -->
                         <div class="hidden">
                             <p id="kpi-epc">0</p>
                             <p id="kpi-aov">0</p>
@@ -237,7 +234,7 @@
                     </div>
                     <div class="flex-1 glass rounded-[36px] overflow-hidden flex flex-col">
                         <div class="px-6 py-2 border-b border-slate-100 bg-white/20">
-                            <span class="text-[9px] font-black text-slate-300 uppercase">Traffic Breakdown</span>
+                            <span class="text-[9px] font-black text-slate-300 uppercase">トラップ源詳細</span>
                         </div>
                         <div class="flex-1 overflow-y-auto px-2">
                             <table class="w-full text-left text-[9px] font-bold">
@@ -247,31 +244,30 @@
                     </div>
                 </div>
 
-                <!-- Center Journey -->
+                <!-- 中央: 回遊パス -->
                 <div class="w-[44%] glass rounded-[44px] flex flex-col overflow-hidden">
                     <div class="px-10 py-5 border-b border-slate-100 flex justify-between items-center">
                         <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span> Visitor Path Journey
+                            <span class="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span> 訪問者回遊パス
                         </h3>
                         <select id="filter-period" onchange="tryFetch()"
                             class="text-[10px] bg-slate-100 border-none rounded-2xl px-4 py-1.5 font-black outline-none cursor-pointer">
-                            <option value="all">Lifetime</option>
-                            <option value="today">Today</option>
+                            <option value="all">全期間</option>
+                            <option value="today">本日</option>
                         </select>
                     </div>
                     <div id="stats-container" class="flex-1 overflow-y-auto p-8 space-y-3"></div>
                     <div id="stats-empty"
                         class="hidden h-full flex items-center justify-center p-8 text-center bg-white/10">
-                        <p class="text-[10px] font-black text-slate-200 uppercase tracking-widest leading-loose">No path
-                            data available<br>for this segment</p>
+                        <p class="text-[10px] font-black text-slate-200 uppercase tracking-widest leading-loose">
+                            パスデータがありません</p>
                     </div>
                 </div>
 
-                <!-- Right Logs -->
+                <!-- 右側: ログ -->
                 <div class="w-[32%] glass rounded-[44px] flex flex-col overflow-hidden">
                     <div class="px-8 py-5 border-b border-slate-100 bg-white/20">
-                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Activity Logs
-                        </h3>
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">システム稼働ログ</h3>
                     </div>
                     <div id="cron-logs-container"
                         class="flex-1 overflow-y-auto p-6 font-mono text-[9px] space-y-1.5 text-slate-500"></div>
@@ -279,47 +275,46 @@
             </div>
         </div>
 
-        <!-- Footer -->
+        <!-- フッター -->
         <footer
             class="h-6 flex justify-between items-center shrink-0 border-t border-slate-100 pt-2 text-[8px] font-black text-slate-200 uppercase tracking-[0.5em]">
-            <span>Secured By AirFuture Infrastructure</span>
+            <span>AirFuture インフラストラクチャ保護下</span>
             <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit#gid=155635466"
-                target="_blank" class="text-indigo-300 hover:text-indigo-600 transition tracking-normal">Spreadsheet
-                Ledger ↗</a>
+                target="_blank"
+                class="text-indigo-300 hover:text-indigo-600 transition tracking-normal">操作台帳（Spreadsheet） ↗</a>
         </footer>
     </div>
 
-    <!-- AI Modal -->
+    <!-- AI 生成モーダル -->
     <div id="gen-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-3xl z-[10000] hidden items-center justify-center p-6 text-center">
         <div class="bg-white p-12 rounded-[60px] max-w-lg w-full shadow-2xl relative">
-            <h2 class="text-4xl font-black mb-10 tracking-tight">AI Content Engine</h2>
-            <textarea id="gen-memo" placeholder="Prompt Context (optional)..."
+            <h2 class="text-4xl font-black mb-10 tracking-tight">AI コンテンツ生成</h2>
+            <textarea id="gen-memo" placeholder="指示や文脈を入力（任意）"
                 class="w-full h-40 bg-slate-50 border-none rounded-[40px] p-8 text-sm outline-none focus:ring-4 ring-indigo-500/10 transition-all font-medium mb-8"></textarea>
             <div class="flex items-center gap-6 mb-10">
                 <select id="gen-days" class="bg-slate-50 p-5 rounded-3xl flex-1 font-black text-sm outline-none">
-                    <option value="1">1 Day Batch</option>
-                    <option value="3">3 Days Batch</option>
-                    <option value="7">7 Days Batch</option>
+                    <option value="1">1日分の記事を生成</option>
+                    <option value="3">3日分の記事を生成</option>
+                    <option value="7">7日分の記事を生成</option>
                 </select>
                 <div class="text-right">
-                    <p class="text-[9px] font-black text-slate-300 uppercase">Backend</p>
-                    <span class="text-[9px] font-black text-emerald-500 uppercase">Ready</span>
+                    <p class="text-[9px] font-black text-slate-300 uppercase">状態</p>
+                    <span class="text-[9px] font-black text-emerald-500">接続済</span>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-5">
                 <button onclick="triggerGenerate(true)"
-                    class="bg-indigo-600 text-white font-black py-6 rounded-3xl hover:bg-slate-900 transition-all">Storytelling</button>
+                    class="bg-indigo-600 text-white font-black py-6 rounded-3xl hover:bg-slate-900 transition-all">ストーリー形式</button>
                 <button onclick="triggerGenerate(false)"
-                    class="bg-slate-100 text-slate-900 font-black py-6 rounded-3xl hover:bg-slate-200 transition-all">List
-                    Batch</button>
+                    class="bg-slate-100 text-slate-900 font-black py-6 rounded-3xl hover:bg-slate-200 transition-all">箇条書き/リスト</button>
             </div>
             <button onclick="closeGenerateModal()"
-                class="w-full text-[11px] font-black text-slate-200 uppercase tracking-[0.4em] mt-10 hover:text-rose-500">Cancel</button>
+                class="w-full text-[11px] font-black text-slate-200 uppercase tracking-[0.4em] mt-10 hover:text-rose-500">キャンセル</button>
         </div>
     </div>
 
-    <!-- Script Layer -->
+    <!-- スクリプト -->
     <script>
         let adminPW = localStorage.getItem('af_admin_pw');
 
@@ -359,12 +354,12 @@
             try {
                 const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPW }, body: JSON.stringify({ storyMode, days, memo }) });
                 if (res.ok) { location.reload(); }
-                else { alert('Failed to trigger generation.'); }
+                else { alert('生成に失敗しました。'); }
             } catch (e) { alert(e.message); }
         }
 
         async function postOp(id, action) {
-            if (!confirm(`Excecute ${action} for #${id}?`)) return;
+            if (!confirm(`${action === 'delete' ? '削除' : '投稿'}を実行しますか？ #${id}`)) return;
             try { await fetch(`/api/manage_post?action=${action}&id=${id}&pw=${adminPW}`); tryFetch(); } catch (e) { alert(e.message); }
         }
 
@@ -376,7 +371,7 @@
 
             const active = (k.autopost_status || '').match(/ON|ACTIVE/);
             const statusEl = document.getElementById('ops-status');
-            statusEl.innerText = active ? 'ACTIVE' : 'INACTIVE';
+            statusEl.innerText = active ? '稼働中' : '停止中';
             document.getElementById('ops-status-container').className = active ? 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200' : 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-rose-100 text-rose-700 border border-rose-200';
 
             document.getElementById('kpi-clicks').innerText = (k.total_clicks || 0).toLocaleString();
@@ -387,31 +382,31 @@
             if (document.getElementById('kpi-epc')) document.getElementById('kpi-epc').innerText = k.epc || 0;
             if (document.getElementById('kpi-aov')) document.getElementById('kpi-aov').innerText = k.aov || 0;
 
-            // Fix Logs: Map correctly to api output
+            // ログの表示
             document.getElementById('cron-logs-container').innerHTML = (data.cronLogs || []).map(l => `
                 <div class="flex gap-3 hover:text-slate-900 transition-colors">
                     <span class="text-indigo-400 font-black shrink-0">[${dayjs(l.timestamp).format('HH:mm')}]</span>
-                    <span class="font-medium">${l.action || 'System Run'}${l.status ? ' (' + l.status + ')' : ''}</span>
-                </div>`).join('') || '<p class="text-slate-300 italic">Idle</p>';
+                    <span class="font-medium">${l.action || '実行中'}${l.status ? ' (' + l.status + ')' : ''}</span>
+                </div>`).join('') || '<p class="text-slate-300 italic">待機中</p>';
 
-            // Queue Detail
+            // 配信予約詳細
             const posts = (data.posts || []).filter(p => !['posted', 'deleted'].includes(p.status)).sort((a, b) => dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf());
             document.getElementById('queue-table-body').innerHTML = posts.map(p => `
                 <tr class="group hover:bg-white/60 transition-all duration-300">
                     <td class="py-4 text-slate-800"><span class="bg-indigo-50 text-indigo-400 px-2 py-0.5 rounded-lg mr-4 font-black uppercase text-[8px]">${p.status}</span>${dayjs(p.scheduled_at).format('MM/DD HH:mm')}</td>
                     <td class="py-4 font-black text-slate-500 tracking-tighter">#${p.id}</td>
-                    <td class="py-4 text-slate-400 line-clamp-1 italic">${p.draft || ''}</td>
+                    <td class="py-4 text-slate-400 line-clamp-1 italic text-[9px]">${p.draft || ''}</td>
                     <td class="py-4 text-right opacity-0 group-hover:opacity-100 transition-all">
-                        <button onclick="postOp('${p.id}', 'force_post')" class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-[9px] font-black shadow-lg hover:scale-105 active:scale-95 transition">PUSH</button>
-                        <button onclick="postOp('${p.id}', 'delete')" class="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg text-[9px] font-black ml-2 hover:bg-rose-600 hover:text-white transition">DEL</button>
+                        <button onclick="postOp('${p.id}', 'force_post')" class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-[9px] font-black shadow-lg hover:scale-105 active:scale-95 transition">投稿</button>
+                        <button onclick="postOp('${p.id}', 'delete')" class="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg text-[9px] font-black ml-2 hover:bg-rose-600 hover:text-white transition">削除</button>
                     </td>
-                </tr>`).join('') || '<tr><td colspan="4" class="p-16 text-center text-slate-200 font-black uppercase tracking-widest">No pending queue</td></tr>';
+                </tr>`).join('') || '<tr><td colspan="4" class="p-16 text-center text-slate-200 font-black uppercase tracking-widest">予約なし</td></tr>';
 
-            // LP Cards: Advanced Normalization to avoid 0 PV
+            // LP集計
             const sClicks = k.clicks_by_source || {};
             const sCV = k.cv_by_source || {};
             const lps = [
-                { id: 'mini_lp', aliases: ['mini_main', 'メイン'], name: 'MAIN', icon: '🏠', accent: 'bg-indigo-600' },
+                { id: 'mini_lp', aliases: ['mini_main', 'メイン'], name: 'メイン', icon: '🏠', accent: 'bg-indigo-600' },
                 { id: 'hayfever', aliases: ['hayfever', '花粉症', '花粉'], name: '花粉症', icon: '🌸', accent: 'bg-pink-500' },
                 { id: 'dental', aliases: ['dental', '歯科医院', '歯科'], name: '歯科医院', icon: '🏥', accent: 'bg-cyan-500' },
                 { id: 'pet', aliases: ['pet', 'ペット'], name: 'ペット', icon: '🐶', accent: 'bg-amber-500' },
@@ -424,7 +419,6 @@
                 const clone = template.content.cloneNode(true);
                 let v = 0;
                 let cvCount = 0;
-                // Aggregate PV/CV from all potential aliases
                 const allKeys = [c.id, ...(c.aliases || [])];
                 allKeys.forEach(key => {
                     v += (sClicks[key] || 0);
@@ -443,7 +437,7 @@
             });
             container.classList.remove('invisible');
 
-            // Journey
+            // 回遊パス
             const journeys = data.topJourneys || [];
             const pathContainer = document.getElementById('stats-container');
             const pathEmpty = document.getElementById('stats-empty');
@@ -456,7 +450,7 @@
                 pathEmpty.classList.add('hidden');
             } else { pathContainer.innerHTML = ''; pathEmpty.classList.remove('hidden'); }
 
-            // Source Table
+            // ソーステーブル
             const allSrc = new Set([...Object.keys(sClicks), ...Object.keys(sCV)]);
             document.getElementById('source-breakdown-body').innerHTML = Array.from(allSrc).map(s => {
                 const val = sClicks[s] || 0;
@@ -465,7 +459,7 @@
                 return `<tr class="hover:bg-white/60 transition-colors group"><td class="py-2 px-4 text-slate-400 group-hover:text-slate-900 transition-colors">${s}</td><td class="text-right text-slate-700 font-black">${val.toLocaleString()}</td><td class="text-right text-indigo-500 font-black">${coVal.toLocaleString()}</td><td class="text-right px-4 pr-6 font-black text-emerald-600">¥${(sCV[s]?.revenue || 0).toLocaleString()}</td></tr>`;
             }).join('');
 
-            document.getElementById('storage-status').innerHTML = `LIVE | <span class="text-indigo-400">DEV: ${k.internal?.dev_clicks || 0}</span> | <span class="text-slate-400">BOT: ${k.internal?.bot_clicks || 0}</span>`;
+            document.getElementById('storage-status').innerHTML = `同期済 | <span class="text-indigo-400">DEV: ${k.internal?.dev_clicks || 0}</span> | <span class="text-slate-400">BOT: ${k.internal?.bot_clicks || 0}</span>`;
         }
         if (adminPW) tryFetch();
     </script>
