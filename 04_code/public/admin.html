@@ -4,717 +4,716 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AirFuture X自動投稿管理画面 v3.5</title>
+    <title>AirFuture X自動投稿管理画面 v4.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap"
+        rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            font-family: 'Outfit', 'Noto Sans JP', sans-serif;
             background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
 
         .hidden-auth {
             display: none !important;
         }
 
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 220px;
-            background-color: #1e293b;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 10px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -110px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 10px;
-            font-weight: bold;
-            line-height: 1.4;
-        }
-
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .btn-op-blue {
-            background-color: #ebf5ff;
-            color: #2563eb;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 900;
-            transition: all 0.2s;
-        }
-
-        .btn-op-blue:hover {
-            background-color: #dbeafe;
-        }
-
-        .btn-op-red {
-            background-color: #fef2f2;
-            color: #dc2626;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 900;
-            transition: all 0.2s;
-        }
-
-        .btn-op-red:hover {
-            background-color: #fee2e2;
-        }
-
-        /* Operation Table Height Control */
-        #queue-scroll-area {
-            max-height: 220px;
-            /* Reduced for single-screen view */
-            overflow-y: auto;
-        }
-
-        #queue-scroll-area::-webkit-scrollbar {
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
             width: 6px;
+            height: 6px;
         }
 
-        #queue-scroll-area::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
             background: #e2e8f0;
             border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-premium {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-premium:active {
+            transform: scale(0.98);
+        }
+
+        @keyframes pulse-slow {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite;
         }
     </style>
 </head>
 
-<body class="text-slate-900 border-t-4 border-indigo-600">
-    <!-- 認証オーバーレイ -->
-    <div id="auth-overlay" class="fixed inset-0 bg-slate-900/90 z-[1000] flex items-center justify-center p-6">
-        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl">
-            <h2 class="text-xl font-black mb-2">内部アクセス</h2>
-            <p class="text-xs text-slate-400 mb-6 font-bold uppercase tracking-widest">AirFuture X自動投稿管理画面</p>
-            <input type="password" id="admin-pw" placeholder="パスワードを入力"
-                class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 focus:border-indigo-500 outline-none transition font-mono">
+<body class="min-h-screen">
+    <!-- Auth Overlay -->
+    <div id="auth-overlay"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-xl z-[9999] flex items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[40px] max-w-sm w-full shadow-2xl border border-slate-100 text-center">
+            <div
+                class="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-indigo-200">
+                <span class="text-3xl font-black text-white">AF</span>
+            </div>
+            <h2 class="text-2xl font-black mb-2">Internal Access</h2>
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">Admin Dashboard v4.0</p>
+            <input type="password" id="admin-pw" placeholder="Enter Password"
+                class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 mb-4 focus:border-indigo-500 focus:bg-white outline-none transition-all font-mono text-center">
             <button onclick="checkAuth()"
-                class="w-full bg-indigo-600 text-white font-black py-3 rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100">ロックを解除</button>
+                class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95">
+                Unlock Dashboard
+            </button>
         </div>
     </div>
 
-    <!-- コンテンツ全体 -->
-    <div id="main-content" class="min-h-screen flex flex-col p-4 hidden-auth max-w-[1400px] mx-auto space-y-3">
+    <!-- Main Content -->
+    <div id="main-content"
+        class="hidden-auth opacity-0 transition-opacity duration-700 max-w-[1600px] mx-auto p-6 md:p-8 space-y-8">
 
-        <!-- ヘッダー -->
-        <div class="flex justify-between items-end shrink-0">
-            <div>
-                <h1 class="text-xl font-black tracking-tighter text-slate-900 flex items-center gap-2">
-                    <span
-                        class="bg-indigo-600 text-white px-2 py-0.5 rounded text-lg shadow-md shadow-indigo-200">AF</span>
-                    <span>X自動投稿管理画面 <span class="text-indigo-600 text-xs font-bold opacity-70">x-autoup</span></span>
-                </h1>
-                <div class="flex items-center gap-3 mt-1">
-                    <button onclick="toggleHelp()"
-                        class="text-[10px] text-indigo-600 font-bold hover:underline">使い方ガイド</button>
-                    <a href="https://x.com/AIRFUTUREKUN" target="_blank"
-                        class="bg-black text-white px-2 py-1 rounded-full text-[9px] font-black flex items-center gap-1 hover:bg-slate-800 transition">
-                        <span>Xプロフィールを表示</span>
-                    </a>
-                    <a href="https://console.cron-job.org/jobs" target="_blank"
-                        class="bg-indigo-50 border border-indigo-200 text-indigo-600 px-2 py-1 rounded-full text-[9px] font-black flex items-center gap-1 hover:bg-indigo-100 transition">
-                        <span>CRON-JOB</span>
-                    </a>
+        <!-- Header Section -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="space-y-1">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                        <span class="text-white font-black text-lg">X</span>
+                    </div>
+                    <h1 class="text-2xl font-black tracking-tight">X自動投稿管理 <span
+                            class="text-slate-300 font-normal">/</span> <span class="text-indigo-600">Admin</span></h1>
                 </div>
-            </div>
-            <!-- Status & Misc Indicators -->
-            <div class="flex flex-col items-end gap-1">
-                <div class="flex items-center gap-2">
-                    <div id="storage-status-container"
-                        class="flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-100 border border-slate-200 shadow-inner">
-                        <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse"></div>
-                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-tight">System:</span>
-                        <span id="storage-status"
-                            class="text-[9px] font-black text-slate-400 uppercase">Checking...</span>
-                    </div>
-                    <button onclick="logout()"
-                        class="text-[9px] font-black text-slate-400 hover:text-red-600 transition tracking-tighter uppercase px-1">Logout</button>
-                </div>
-            </div>
-        </div>
-        <!-- 運用セクション (上部) -->
-        <section class="space-y-3">
-            <div class="grid grid-cols-4 gap-3">
-                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
-                    <div class="flex justify-between items-center">
-                        <p class="text-[9px] text-slate-400 font-black uppercase tracking-wider">予約待機</p>
-                        <span class="text-xs font-bold text-slate-300">件</span>
-                    </div>
-                    <div class="mt-1">
-                        <span class="text-2xl font-black text-slate-900" id="ops-queued">0</span>
-                    </div>
-                </div>
-                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
-                    <div class="flex justify-between items-center">
-                        <p class="text-[9px] text-slate-400 font-black uppercase tracking-wider">本日投稿</p>
-                        <span class="text-xs font-bold text-slate-300">件</span>
-                    </div>
-                    <div class="mt-1">
-                        <span class="text-2xl font-black text-slate-900" id="ops-today">0</span>
-                    </div>
-                </div>
-                <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden">
-                    <p class="text-[9px] text-emerald-600 font-black uppercase mb-1 tracking-wider">ステータス</p>
-                    <span class="text-2xl font-black text-emerald-700" id="ops-status">稼働中</span>
-                </div>
-                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div class="flex justify-between items-center">
-                        <p class="text-[9px] text-slate-400 font-black uppercase tracking-wider">エラー (24h)</p>
-                        <span class="text-xs font-bold text-slate-300">件</span>
-                    </div>
-                    <div class="mt-1">
-                        <span class="text-2xl font-black text-slate-900" id="ops-errors">0</span>
-                    </div>
+                <div class="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <button onclick="toggleHelp()" class="hover:text-indigo-600 transition">Usage Guide</button>
+                    <span class="text-slate-200">•</span>
+                    <a href="https://x.com/AIRFUTUREKUN" target="_blank" class="hover:text-black transition">X
+                        Profile</a>
+                    <span class="text-slate-200">•</span>
+                    <span id="storage-status" class="animate-pulse-slow">LIVE | 接続確認中...</span>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden flex flex-col">
-                <div class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <h2 class="text-xs font-black text-slate-800 uppercase tracking-tighter">投稿オペレーション</h2>
-                        <div class="flex gap-2">
-                            <button onclick="triggerCron('scheduled_post')"
-                                class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-[10px] font-black hover:bg-indigo-700 transition shadow-sm">予約チェック</button>
-                            <button onclick="openGenerateModal()"
-                                class="bg-white border border-indigo-100 text-indigo-600 px-3 py-1 rounded-lg text-[10px] font-black hover:bg-indigo-50 transition">AI生成</button>
+            <div class="flex items-center gap-3">
+                <div class="flex flex-col items-end mr-4">
+                    <div id="ops-status-container"
+                        class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        Status: <span id="ops-status">ACTIVE</span>
+                    </div>
+                </div>
+                <button onclick="logout()"
+                    class="p-2 hover:bg-slate-100 rounded-xl transition text-slate-400 hover:text-rose-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Top Widgets Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Posting Status -->
+            <div class="lg:col-span-4 grid grid-cols-2 gap-4">
+                <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">待機中</p>
+                    <div class="flex items-baseline gap-2">
+                        <span id="ops-queued" class="text-4xl font-black">0</span>
+                        <span class="text-xs font-bold text-slate-300">posts</span>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">本日完了</p>
+                    <div class="flex items-baseline gap-2">
+                        <span id="ops-today" class="text-4xl font-black">0</span>
+                        <span class="text-xs font-bold text-slate-300">done</span>
+                    </div>
+                </div>
+                <div
+                    class="col-span-2 bg-indigo-600 p-6 rounded-[32px] text-white shadow-xl shadow-indigo-100 flex justify-between items-center group overflow-hidden relative">
+                    <div class="relative z-10">
+                        <p class="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1">AI Post Engine
+                        </p>
+                        <h3 class="text-xl font-black">自動生成・投稿</h3>
+                    </div>
+                    <div class="flex gap-2 relative z-10">
+                        <button onclick="triggerCron('scheduled_post')"
+                            class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-xs font-black transition backdrop-blur-md">予約照合</button>
+                        <button onclick="openGenerateModal()"
+                            class="bg-white text-indigo-600 px-4 py-2 rounded-xl text-xs font-black shadow-lg hover:shadow-xl transition">AI一括生成</button>
+                    </div>
+                    <!-- Decorative element -->
+                    <div
+                        class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operations Table -->
+            <div
+                class="lg:col-span-8 bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                <div class="px-8 py-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                    <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                        <span class="w-1 h-3 bg-indigo-600 rounded-full"></span>
+                        Queue Management
+                    </h2>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="show-bots" onchange="tryFetch()"
+                                class="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            <label for="show-bots"
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-wider cursor-pointer">All
+                                Traffic</label>
                         </div>
                     </div>
-                    </select>
-                    <div class="flex items-center gap-2 px-2">
-                        <input type="checkbox" id="show-bots" onchange="tryFetch()" class="w-3 h-3 cursor-pointer">
-                        <label for="show-bots"
-                            class="text-[9px] font-black text-slate-400 uppercase cursor-pointer">すべてのアクセスを表示</label>
-                    </div>
                 </div>
-
-                <div id="queue-scroll-area" class="h-[150px]">
+                <div class="flex-1 overflow-y-auto max-h-[220px]">
                     <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50/50 sticky top-0 z-10">
+                        <thead class="bg-slate-50/50 sticky top-0 backdrop-blur-sm z-10">
                             <tr
-                                class="text-[9px] text-slate-400 font-black tracking-widest uppercase border-b border-slate-100">
-                                <th class="px-4 py-2">ステータス / 時刻</th>
-                                <th class="px-4 py-2">ID</th>
-                                <th class="px-4 py-2">内容</th>
-                                <th class="px-4 py-2 text-right">操作</th>
+                                class="text-[10px] text-slate-400 font-black tracking-widest uppercase border-b border-slate-50">
+                                <th class="px-8 py-3">Status / Time</th>
+                                <th class="px-4 py-3">ID</th>
+                                <th class="px-4 py-3">Draft Content</th>
+                                <th class="px-8 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="queue-table-body" class="divide-y divide-slate-50"></tbody>
                     </table>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- セクション区切りタイトル -->
-        <div class="pt-8 pb-4 flex items-center gap-4">
-            <div class="h-px bg-slate-200 flex-1"></div>
-            <div class="flex flex-col items-center gap-2">
-                <h2 class="text-lg font-black text-slate-900 flex items-center gap-3 whitespace-nowrap">
-                    <span class="w-2 h-6 bg-indigo-500 rounded-full"></span>
-                    AF-MINI LP管理画面
-                </h2>
-                <div class="flex flex-wrap gap-3">
+        <!-- Section 2: LP Performance -->
+        <div class="space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div class="space-y-1">
+                    <h2 class="text-2xl font-black tracking-tighter flex items-center gap-3">
+                        <span class="w-1.5 h-7 bg-indigo-500 rounded-full"></span>
+                        LP Performance Analytics
+                    </h2>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-4">Real-time status of
+                        each landing page</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
                     <button onclick="runAdminAction('check_metrics')"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all">
-                        📊 統計更新 (X)
-                    </button>
+                        class="bg-indigo-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all btn-premium">📊
+                        統計更新 (X)</button>
                     <button onclick="runAdminAction('generate_drafts')"
-                        class="bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-slate-200 hover:bg-black active:scale-95 transition-all">
-                        ✨ 記事補充 (AI)
-                    </button>
-                    <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit?gid=155635466#gid=155635466"
+                        class="bg-slate-800 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black shadow-lg hover:bg-black transition-all btn-premium">✨
+                        記事補充 (AI)</button>
+                    <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit#gid=155635466"
                         target="_blank"
-                        class="bg-emerald-50 border border-emerald-200 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1 hover:bg-emerald-100 transition shadow-sm">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        class="bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-2xl text-[10px] font-black flex items-center gap-2 hover:bg-slate-50 transition-all btn-premium">
+                        <svg class="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
                             <path
-                                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1.8 18H14l-2-3.4-2 3.4H8.2l2.9-4.5-2.8-4.5H10l1.8 3 1.8-3h1.7l-2.9 4.5 3 4.5zM13 9V3.5L18.5 9H13z" />
+                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm1.8 18H14l-2-3.4-2 3.4H8.2l2.9-4.5-2.8-4.5H10l1.8 3 1.8-3h1.7l-2.9 4.5 3 4.5zM13 9V3.5L18.5 9H13z" />
                         </svg>
-                        <span>データ管理スプレッドシート</span>
+                        Spreadsheet
                     </a>
                 </div>
-                <div class="h-px bg-slate-200 flex-1"></div>
             </div>
 
-            <!-- LP別 KPIカード・クイックリンク -->
-            <div class="grid grid-cols-5 gap-4 mb-6">
+            <!-- LP Cards Grid -->
+            <div id="lp-cards-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <template id="lp-card-template">
                     <div
-                        class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center text-center transition-all hover:shadow-xl hover:-translate-y-1 relative group overflow-hidden">
-                        <div class="text-3xl mb-2 lp-icon">🏠</div>
+                        class="bg-white p-6 rounded-[40px] border border-slate-100 shadow-sm flex flex-col items-center text-center transition-all hover:shadow-2xl hover:-translate-y-1 relative group overflow-hidden">
+                        <div class="text-4xl mb-3 lp-icon">🏠</div>
                         <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 lp-name">MAIN
                         </div>
-                        <div class="flex items-baseline gap-1 mb-4">
-                            <span class="text-2xl font-black text-slate-900 lp-pv">0</span>
-                            <span class="text-[10px] text-slate-400 font-bold uppercase">PV</span>
+                        <div class="flex items-baseline gap-1 mb-6">
+                            <span class="text-3xl font-black text-slate-900 lp-pv">0</span>
+                            <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider">PV</span>
                         </div>
-                        <div class="flex gap-2 w-full">
-                            <div
-                                class="flex-1 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full flex items-center justify-between">
-                                <span class="text-[8px] font-black text-slate-400 lp-cv-label">CV: 0</span>
-                                <span class="text-[8px] font-black text-slate-400 lp-cvr">0.0%</span>
+                        <div
+                            class="w-full bg-slate-50/50 rounded-2xl p-3 flex justify-around items-center border border-slate-50">
+                            <div class="text-center">
+                                <p class="text-[8px] font-black text-slate-300 uppercase mb-0.5">CV</p>
+                                <p class="text-xs font-black lp-cv-label">0</p>
+                            </div>
+                            <div class="w-px h-6 bg-slate-100"></div>
+                            <div class="text-center">
+                                <p class="text-[8px] font-black text-slate-300 uppercase mb-0.5">CVR</p>
+                                <p class="text-xs font-black lp-cvr text-indigo-600">0.0%</p>
                             </div>
                         </div>
-                        <a href="#" target="_blank" class="absolute inset-0 z-10 lp-link" title="ページを開く"></a>
-                        <div class="absolute bottom-0 left-0 w-full h-1 lp-accent"></div>
+                        <a href="#" target="_blank" class="absolute inset-0 z-10 lp-link"></a>
+                        <div class="absolute bottom-0 left-0 w-full h-1.5 lp-accent"></div>
                     </div>
                 </template>
-                <div id="lp-cards-container" class="contents"></div>
             </div>
+        </div>
 
-            <!-- KPI管理・解析セクション (下部) -->
-            <section class="space-y-3">
-                <h2 class="text-sm font-black text-slate-900 flex items-center gap-1.5 hidden">
-                    <span class="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
-                    KPI計測
-                </h2>
-
-                <div class="grid grid-cols-6 gap-3">
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-[9px] text-slate-400 font-black uppercase mb-1">総クリック</p>
-                        <span class="text-xl font-black text-slate-900" id="kpi-clicks">0</span>
-                    </div>
-                    <div class="bg-indigo-50/30 p-3 rounded-xl border border-indigo-100 shadow-sm">
-                        <p class="text-[9px] text-indigo-600 font-black uppercase mb-1">成約 (CV)</p>
-                        <span class="text-xl font-black text-indigo-700" id="kpi-cv">0</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-[9px] text-slate-400 font-black uppercase mb-1">成約率 (CVR)</p>
-                        <div class="flex items-baseline gap-0.5">
-                            <span class="text-xl font-black text-slate-900" id="kpi-cvr">0.0</span>
-                            <span class="text-[10px] font-bold text-slate-400">%</span>
-                        </div>
-                    </div>
-                    <div
-                        class="bg-emerald-50/30 p-3 rounded-xl border border-emerald-100 shadow-sm border-b-2 border-b-emerald-400">
-                        <p class="text-[9px] text-emerald-600 font-black uppercase mb-1">収益 (Revenue)</p>
-                        <div class="flex items-baseline gap-0.5">
-                            <span class="text-[10px] text-emerald-400">¥</span>
-                            <span class="text-xl font-black text-emerald-700" id="kpi-revenue">0</span>
-                        </div>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-[9px] text-slate-400 font-black uppercase mb-1">EPC</p>
-                        <span class="text-xl font-black text-slate-900" id="kpi-epc">0</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                        <p class="text-[9px] text-slate-400 font-black uppercase mb-1">AOV</p>
-                        <span class="text-xl font-black text-slate-900" id="kpi-aov">0</span>
+        <!-- Section 3: Deep Metrics & Analysis -->
+        <div class="space-y-6">
+            <!-- Global Totals -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Total Clicks</p>
+                    <span id="kpi-clicks" class="text-2xl font-black tracking-tighter">0</span>
+                </div>
+                <div class="bg-indigo-50/50 p-5 rounded-3xl border border-indigo-100 shadow-sm">
+                    <p class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Conversions</p>
+                    <span id="kpi-cv" class="text-2xl font-black tracking-tighter text-indigo-700">0</span>
+                </div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Avg CVR</p>
+                    <div class="flex items-baseline gap-0.5">
+                        <span id="kpi-cvr" class="text-2xl font-black tracking-tighter">0.0</span>
+                        <span class="text-[10px] font-black text-slate-300">%</span>
                     </div>
                 </div>
-
-                <div class="grid grid-cols-12 gap-3 h-[200px]">
-                    <!-- 左側: LP別パフォーマンス -->
-                    <div
-                        class="col-span-5 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-[9px] text-slate-400 font-black uppercase tracking-widest">パフォーマンス詳細 (LP別)
-                            </h3>
-                            <select id="filter-period" onchange="tryFetch()"
-                                class="text-[9px] bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5 outline-none font-bold">
-                                <option value="all">全期間</option>
-                                <option value="today">本日</option>
-                                <option value="7d">7日間</option>
-                            </select>
-                        </div>
-                        <div class="flex-1 overflow-y-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="bg-slate-50 sticky top-0">
-                                    <tr class="text-[8px] text-slate-400 font-black uppercase tracking-wider">
-                                        <th class="px-2 py-1.5 rounded-l-lg">Source</th>
-                                        <th class="px-2 py-1.5 text-right">Click</th>
-                                        <th class="px-2 py-1.5 text-right">CV</th>
-                                        <th class="px-2 py-1.5 text-right">CVR</th>
-                                        <th class="px-2 py-1.5 text-right rounded-r-lg">Rev</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="source-breakdown-body" class="divide-y divide-slate-50"></tbody>
-                            </table>
-                        </div>
-                        <input type="hidden" id="filter-lp" value="all">
+                <div
+                    class="bg-emerald-50/50 p-5 rounded-3xl border border-emerald-100 shadow-sm border-b-4 border-b-emerald-400">
+                    <p class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-2">Revenue</p>
+                    <div class="flex items-baseline gap-0.5">
+                        <span class="text-[10px] font-black text-emerald-400">¥</span>
+                        <span id="kpi-revenue" class="text-2xl font-black tracking-tighter text-emerald-700">0</span>
                     </div>
+                </div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">EPC</p>
+                    <span id="kpi-epc" class="text-2xl font-black tracking-tighter">0</span>
+                </div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">AOV</p>
+                    <span id="kpi-aov" class="text-2xl font-black tracking-tighter">0</span>
+                </div>
+            </div>
 
-                    <!-- 中央: コンテンツランキング -->
-                    <div
-                        class="col-span-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full">
-                        <h3 class="text-[9px] text-slate-400 font-black uppercase mb-2 tracking-widest">訪問ルート解析 (Top 10)
+            <!-- Tables & Insights Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Source Table -->
+                <div
+                    class="lg:col-span-5 bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[350px]">
+                    <div class="px-8 py-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Source Breakdown
                         </h3>
-                        <div id="stats-container" class="space-y-2 flex-1 overflow-y-auto pr-1"></div>
-                        <div id="stats-empty"
-                            class="hidden h-full flex items-center justify-center text-[9px] text-slate-300 font-bold text-center">
-                            訪問ルートのデータがまだありません
-                        </div>
+                        <select id="filter-period" onchange="tryFetch()"
+                            class="bg-slate-100 border-none rounded-lg px-3 py-1 text-[10px] font-black outline-none cursor-pointer">
+                            <option value="all">Lifetime</option>
+                            <option value="today">Today</option>
+                            <option value="7d">Last 7D</option>
+                        </select>
                     </div>
-
-                    <!-- 右側: ログ -->
-                    <div
-                        class="col-span-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full">
-                        <h3 class="text-[9px] text-slate-400 font-black uppercase mb-2 tracking-widest">ログ</h3>
-                        <div id="cron-logs-container" class="space-y-0.5 flex-1 overflow-y-auto text-[8px]"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- カスタムダイアログ群 -->
-            <div id="help-modal"
-                class="fixed inset-0 bg-slate-900/60 z-[2000] hidden items-center justify-center p-6 backdrop-blur-sm">
-                <div class="bg-white p-10 rounded-[40px] max-w-lg w-full shadow-2xl relative">
-                    <button onclick="toggleHelp()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12">
-                            </path>
-                        </svg>
-                    </button>
-                    <h2 class="text-2xl font-black mb-6 border-b pb-4">ダッシュボード 使い方ガイド</h2>
-                    <div class="space-y-6 text-sm text-slate-600 leading-relaxed">
-                        <div>
-                            <h3 class="font-bold text-slate-900 mb-2">1. 投稿管理 (上部)</h3>
-                            <p>自動投稿のスケジュール管理を行います。記事生成ボタンからAIに記事を作らせたり、「今すぐ投稿」で即時配信が可能です。</p>
-                        </div>
-                    </div>
-                    <button onclick="toggleHelp()"
-                        class="mt-8 w-full bg-slate-100 text-slate-900 font-black py-4 rounded-2xl hover:bg-slate-200 transition">閉じる</button>
-                </div>
-            </div>
-
-            <div id="gen-modal"
-                class="fixed inset-0 bg-slate-900/60 z-[3000] hidden items-center justify-center p-6 backdrop-blur-sm">
-                <div class="bg-white p-10 rounded-[40px] max-w-lg w-full shadow-2xl relative">
-                    <h2 class="text-3xl font-black mb-6">AI記事一括生成</h2>
-                    <div class="space-y-6">
-                        <div>
-                            <label
-                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">AI指示プロンプト</label>
-                            <textarea id="gen-memo" placeholder="例: 春の花粉シーズンに向けて..."
-                                class="w-full h-32 border-2 border-slate-100 rounded-2xl p-5 text-sm outline-none transition font-medium"></textarea>
-                        </div>
-                        <div>
-                            <label
-                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">生成期間
-                                (Days)</label>
-                            <select id="gen-days"
-                                class="w-full border-2 border-slate-100 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-indigo-500 transition">
-                                <option value="1">1日間 (3記事)</option>
-                                <option value="3">3日間 (9記事)</option>
-                                <option value="7">7日間 (21記事)</option>
-                                <option value="14">14日間 (42記事)</option>
-                                <option value="30">30日間 (90記事)</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button onclick="triggerGenerate(true)"
-                                class="bg-indigo-600 text-white font-black py-5 rounded-3xl hover:bg-indigo-700 transition shadow-lg">ストーリー形式</button>
-                            <button onclick="triggerGenerate(false)"
-                                class="bg-white border-2 border-indigo-600 text-indigo-600 font-black py-5 rounded-3xl hover:bg-indigo-50 transition">単品案を生成</button>
-                        </div>
-                        <button onclick="closeGenerateModal()"
-                            class="w-full text-xs font-black text-slate-300 pt-4">閉じる</button>
+                    <div class="flex-1 overflow-y-auto px-4">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-white sticky top-0 z-10">
+                                <tr
+                                    class="text-[8px] text-slate-300 font-black uppercase tracking-widest border-b border-slate-50">
+                                    <th class="px-4 py-3">Source ID</th>
+                                    <th class="px-2 py-3 text-right">Clicks</th>
+                                    <th class="px-2 py-3 text-right">CV</th>
+                                    <th class="px-2 py-3 text-right">CVR</th>
+                                    <th class="px-4 py-3 text-right">Rev</th>
+                                </tr>
+                            </thead>
+                            <tbody id="source-breakdown-body" class="divide-y divide-slate-50/50"></tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
 
-            <div id="confirm-modal"
-                class="fixed inset-0 bg-slate-900/60 z-[4000] hidden items-center justify-center p-6 backdrop-blur-sm">
-                <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl relative">
-                    <h3 class="text-xl font-black text-slate-900 mb-4" id="confirm-title">確認</h3>
-                    <p class="text-sm text-slate-600 mb-6" id="confirm-message">この操作を実行しますか？</p>
-                    <div class="flex gap-3">
-                        <button onclick="confirmAction(false)"
-                            class="flex-1 bg-slate-100 text-slate-600 font-black py-3 rounded-xl">キャンセル</button>
-                        <button onclick="confirmAction(true)"
-                            class="flex-1 bg-indigo-600 text-white font-black py-3 rounded-xl shadow-lg shadow-indigo-100">OK</button>
+                <!-- Visitor Path Analysis -->
+                <div
+                    class="lg:col-span-4 bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[350px]">
+                    <div class="px-8 py-4 border-b border-slate-50 bg-slate-50/20">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Visitor Path (TOP
+                            10)</h3>
+                    </div>
+                    <div id="stats-container" class="flex-1 overflow-y-auto p-6 space-y-3"></div>
+                    <div id="stats-empty" class="hidden flex-1 items-center justify-center p-8 text-center">
+                        <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-loose">No path
+                            data available<br>for this period</p>
                     </div>
                 </div>
-            </div>
 
-            <div id="alert-modal"
-                class="fixed inset-0 bg-slate-900/60 z-[4000] hidden items-center justify-center p-6 backdrop-blur-sm">
-                <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl relative text-center">
-                    <div id="alert-icon" class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <!-- System Logs -->
+                <div
+                    class="lg:col-span-3 bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[350px]">
+                    <div class="px-8 py-4 border-b border-slate-50 bg-slate-50/20">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">System Logs</h3>
                     </div>
-                    <h3 class="text-xl font-black text-slate-900" id="alert-title">通知</h3>
-                    <p class="text-sm text-slate-600 mt-2 mb-6" id="alert-message"></p>
-                    <button onclick="closeAlert()"
-                        class="w-full bg-indigo-600 text-white font-black py-3 rounded-xl shadow-lg shadow-indigo-100">閉じる</button>
+                    <div id="cron-logs-container" class="flex-1 overflow-y-auto p-4 space-y-1 font-mono text-[9px]">
+                    </div>
                 </div>
             </div>
         </div>
 
-        <script>
-            let adminPW = localStorage.getItem('af_admin_pw');
-            let currentData = null;
+        <!-- Footer / Credits -->
+        <footer class="pt-8 text-center">
+            <p class="text-[10px] font-black text-slate-200 uppercase tracking-[0.5em]">AIRFUTURE INFRASTRUCTURE •
+                SECURE DASHBOARD</p>
+        </footer>
+    </div>
 
-            function checkAuth() { const pw = document.getElementById('admin-pw').value; if (pw) { localStorage.setItem('af_admin_pw', pw); adminPW = pw; tryFetch(); } }
-            function logout() { localStorage.removeItem('af_admin_pw'); location.reload(); }
-            function toggleHelp() { const modal = document.getElementById('help-modal'); modal.classList.toggle('hidden'); modal.classList.toggle('flex'); }
-            function openGenerateModal() { document.getElementById('gen-modal').classList.remove('hidden'); document.getElementById('gen-modal').classList.add('flex'); }
-            function closeGenerateModal() { document.getElementById('gen-modal').classList.add('hidden'); document.getElementById('gen-modal').classList.remove('flex'); }
+    <!-- Modals (Hidden) -->
+    <div id="help-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] hidden items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[40px] max-w-lg w-full shadow-2xl relative">
+            <button onclick="toggleHelp()"
+                class="absolute top-6 right-6 p-2 hover:bg-slate-100 rounded-full transition text-slate-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+            <h2 class="text-3xl font-black mb-6">Dashboard Guide</h2>
+            <div class="space-y-6 text-sm text-slate-500 leading-relaxed font-medium">
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <h3 class="font-black text-indigo-600 uppercase text-[10px] tracking-widest mb-2">Queue Management
+                    </h3>
+                    <p>管理画面上部で、現在予約されている投稿の確認、削除、または即時投稿が可能です。</p>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <h3 class="font-black text-indigo-600 uppercase text-[10px] tracking-widest mb-2">KPI & Analysis
+                    </h3>
+                    <p>LP別のPV、CV、収益をリアルタイムで監視。新機能の「訪問ルート解析」では、ユーザーがどのようにLPを回遊したかを可視化します。</p>
+                </div>
+            </div>
+            <button onclick="toggleHelp()"
+                class="mt-8 w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-black transition-all">Close
+                Guide</button>
+        </div>
+    </div>
 
-            async function triggerGenerate(storyMode) {
-                const days = document.getElementById('gen-days').value;
-                const memo = document.getElementById('gen-memo').value;
-                const modeName = storyMode ? `${days}日分ストーリー` : `${days}日分（計${days * 3}件）の通常記事`;
-                const confirmed = await showConfirm(`AIによる「${modeName}」の生成を開始しますか？${memo ? '\n指示: ' + memo : ''}`, '生成開始');
-                if (!confirmed) return;
+    <div id="gen-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] hidden items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[40px] max-w-lg w-full shadow-2xl relative">
+            <h2 class="text-3xl font-black mb-6">AI Bulk Generator</h2>
+            <div class="space-y-6">
+                <div>
+                    <label
+                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Special
+                        Prompt (Optional)</label>
+                    <textarea id="gen-memo" placeholder="例: 花粉症対策についてのストーリー仕立てで..."
+                        class="w-full h-32 bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 text-sm outline-none focus:bg-white focus:border-indigo-500 transition-all font-medium"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Duration</label>
+                        <select id="gen-days"
+                            class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:border-indigo-500 transition-all">
+                            <option value="1">1 Day (3 Posts)</option>
+                            <option value="3">3 Days (9 Posts)</option>
+                            <option value="7">7 Days (21 Posts)</option>
+                            <option value="14">14 Days (42 Posts)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end flex-col justify-end">
+                        <p class="text-[9px] font-black text-slate-300 uppercase tracking-wider mb-2">System Status</p>
+                        <span class="text-[9px] font-bold text-emerald-500">ENGINE READY</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-4">
+                    <button onclick="triggerGenerate(true)"
+                        class="bg-indigo-600 text-white font-black py-5 rounded-[24px] hover:bg-indigo-700 transition shadow-xl shadow-indigo-100 btn-premium">Story
+                        Mode</button>
+                    <button onclick="triggerGenerate(false)"
+                        class="bg-white border-2 border-indigo-600 text-indigo-600 font-black py-5 rounded-[24px] hover:bg-indigo-50 transition btn-premium">Standard
+                        List</button>
+                </div>
+                <button onclick="closeGenerateModal()"
+                    class="w-full text-[10px] font-black text-slate-300 uppercase tracking-widest pt-4 hover:text-slate-400 transition">Cancel</button>
+            </div>
+        </div>
+    </div>
 
-                // UI Feedback
-                const modal = document.querySelector('#gen-modal > div');
-                const originalContent = modal.innerHTML;
-                modal.innerHTML = '<div class="flex flex-col items-center justify-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div><span class="font-black text-slate-600">AIが記事を執筆中...</span><p class="text-xs text-slate-400 mt-2">これには数分かかる場合があります</p></div>';
+    <!-- Alert / Confirm -->
+    <div id="alert-modal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[11000] hidden items-center justify-center p-6">
+        <div class="bg-white p-10 rounded-[40px] max-w-sm w-full shadow-2xl text-center">
+            <div id="alert-icon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"></div>
+            <h3 id="alert-title" class="text-xl font-black mb-2">Notification</h3>
+            <p id="alert-message" class="text-xs text-slate-500 font-bold leading-relaxed mb-8"></p>
+            <button onclick="closeAlert()"
+                class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-black transition-all">Understood</button>
+        </div>
+    </div>
 
-                try {
-                    const res = await fetch('/api/generate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPW },
-                        body: JSON.stringify({ count: 3, storyMode, days, memo })
-                    });
-                    const json = await res.json();
-                    if (res.ok) {
-                        showAlert(json.message || '生成が完了しました。', '成功');
-                        closeGenerateModal();
-                        await tryFetch();
-                    } else {
-                        showAlert(json.error || '生成に失敗しました。', 'エラー', false);
-                        modal.innerHTML = originalContent;
-                    }
-                } catch (e) {
-                    showAlert(e.message, '通信エラー', false);
-                    modal.innerHTML = originalContent;
-                }
-            }
+    <!-- Background Functions -->
+    <script>
+        let adminPW = localStorage.getItem('af_admin_pw');
+        let currentData = null;
 
-            function showConfirm(message, title = '確認') {
-                return new Promise((resolve) => {
-                    document.getElementById('confirm-title').innerText = title;
-                    document.getElementById('confirm-message').innerText = message;
-                    document.getElementById('confirm-modal').classList.remove('hidden');
-                    document.getElementById('confirm-modal').classList.add('flex');
-                    window.confirmAction = (result) => {
-                        document.getElementById('confirm-modal').classList.add('hidden');
-                        document.getElementById('confirm-modal').classList.remove('flex');
-                        resolve(result);
-                    };
+        function checkAuth() {
+            const pw = document.getElementById('admin-pw').value;
+            if (pw) { localStorage.setItem('af_admin_pw', pw); adminPW = pw; tryFetch(); }
+        }
+        function logout() { localStorage.removeItem('af_admin_pw'); location.reload(); }
+        function toggleHelp() {
+            const m = document.getElementById('help-modal');
+            m.classList.toggle('hidden'); m.classList.toggle('flex');
+        }
+        function openGenerateModal() {
+            const m = document.getElementById('gen-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeGenerateModal() {
+            const m = document.getElementById('gen-modal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+
+        async function tryFetch() {
+            try {
+                const showBots = document.getElementById('show-bots')?.checked || false;
+                const period = document.getElementById('filter-period')?.value || 'all';
+                const res = await fetch(`/api/dashboard?human_only=${!showBots}&period=${period}`, { headers: { 'x-admin-password': adminPW } });
+                if (res.status === 401) { logout(); return; }
+                const data = await res.json();
+
+                // Show content with fade-in
+                document.getElementById('auth-overlay').classList.add('hidden-auth');
+                const content = document.getElementById('main-content');
+                content.classList.remove('hidden-auth');
+                setTimeout(() => content.classList.add('opacity-100'), 50);
+
+                currentData = data;
+                render(data);
+            } catch (err) { console.error(err); }
+        }
+
+        async function triggerGenerate(storyMode) {
+            const days = document.getElementById('gen-days').value;
+            const memo = document.getElementById('gen-memo').value;
+            const confirmed = confirm('AI生成を開始しますか？これには数分かかる場合があります。');
+            if (!confirmed) return;
+
+            const modal = document.querySelector('#gen-modal > div');
+            const original = modal.innerHTML;
+            modal.innerHTML = '<div class="flex flex-col items-center justify-center p-20 text-center"><div class="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-6"></div><h3 class="text-xl font-black mb-2">Genie at Work...</h3><p class="text-xs text-slate-400 font-bold uppercase tracking-wider">AI is composing your posts</p></div>';
+
+            try {
+                const res = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPW },
+                    body: JSON.stringify({ storyMode, days, memo })
                 });
-            }
-
-            function showAlert(message, title = '通知', isSuccess = true) {
-                const iconHtml = isSuccess ? '<svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '<svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-                document.getElementById('alert-title').innerText = title;
-                document.getElementById('alert-message').innerText = message;
-                document.getElementById('alert-icon').innerHTML = iconHtml;
-                document.getElementById('alert-icon').className = `mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isSuccess ? 'bg-emerald-100' : 'bg-red-100'}`;
-                document.getElementById('alert-modal').classList.remove('hidden');
-                document.getElementById('alert-modal').classList.add('flex');
-            }
-            function closeAlert() { document.getElementById('alert-modal').classList.add('hidden'); }
-
-            async function runAdminAction(action) {
-                const label = action === 'check_metrics' ? '統計更新' : '記事補充';
-                if (!confirm(`${label}を実行しますか？\nXのAPI制限を消費します。`)) return;
-
-                const btn = event.target;
-                const originalText = btn.innerText;
-                btn.disabled = true;
-                btn.innerText = '実行中...';
-
-                try {
-                    const res = await fetch(`/api/cron?action=${action}`, {
-                        headers: { 'x-admin-password': adminPW }
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        alert(`${label}が正常に完了しました。`);
-                        tryFetch(); // データをリロード
-                    } else {
-                        alert(`エラー: ${data.error || '実行に失敗しました'}`);
-                    }
-                } catch (e) {
-                    alert(`通信エラー: ${e.message}`);
-                } finally {
-                    btn.disabled = false;
-                    btn.innerText = originalText;
-                }
-            }
-
-            async function tryFetch() {
-                try {
-                    const showBots = document.getElementById('show-bots')?.checked || false;
-                    const period = document.getElementById('filter-period')?.value || 'all';
-                    const res = await fetch(`/api/dashboard?human_only=${!showBots}&period=${period}`, { headers: { 'x-admin-password': adminPW } });
-                    if (res.status === 401) { logout(); return; }
-                    currentData = await res.json();
-                    document.getElementById('auth-overlay').classList.add('hidden-auth');
-                    document.getElementById('main-content').classList.remove('hidden-auth');
-                    render(currentData);
-                } catch (err) { console.error(err); }
-            }
-
-            async function triggerCron(action) {
-                try { await fetch(`/api/cron?action=${action}&pw=${adminPW}`); setTimeout(tryFetch, 1500); } catch (err) { }
-            }
-
-            async function postOp(id, action) {
-                const btn = event.currentTarget;
-                const actionLabel = action === 'force_post' ? '今すぐ投稿' : '削除';
-                const confirmed = await showConfirm(`ID#${id} に対して ${actionLabel} を実行します。`, '操作確認');
-                if (!confirmed) return;
-                if (btn) btn.disabled = true;
-                try {
-                    const res = await fetch(`/api/manage_post?action=${action}&id=${id}&pw=${adminPW}`);
-                    const data = await res.json();
-                    if (!res.ok) { showAlert(data.error || 'Error', 'エラー', false); return; }
-                    showAlert('完了しました', '成功');
+                const json = await res.json();
+                if (res.ok) {
+                    showAlert('AI Content Generation Successful.', 'Success', true);
+                    closeGenerateModal();
                     await tryFetch();
-                } catch (err) { showAlert(err.message, '通信エラー', false); }
-                finally { if (btn) btn.disabled = false; }
+                } else { throw new Error(json.error); }
+            } catch (e) {
+                showAlert(e.message, 'Generation Failed', false);
+                modal.innerHTML = original;
             }
+        }
 
-            function render(data) {
-                const kpi = data.kpi || {};
-                document.getElementById('ops-queued').innerText = kpi.queued || 0;
-                document.getElementById('ops-today').innerText = kpi.posted_today || 0;
+        function showAlert(message, title = 'Notification', isSuccess = true) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = message;
+            const icon = document.getElementById('alert-icon');
+            icon.innerHTML = isSuccess ? '<svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '<svg class="w-8 h-8 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            icon.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${isSuccess ? 'bg-emerald-100' : 'bg-rose-100'}`;
+            const m = document.getElementById('alert-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeAlert() { document.getElementById('alert-modal').classList.add('hidden'); }
 
-                const statusEl = document.getElementById('ops-status');
-                const isActive = (kpi.autopost_status || '').includes('ON') || (kpi.autopost_status || '').includes('ACTIVE');
-                statusEl.innerText = isActive ? '稼働中' : '停止中';
-                statusEl.parentElement.className = isActive ? 'bg-emerald-50 p-3 rounded-2xl border border-emerald-100 relative' : 'bg-rose-50 p-3 rounded-2xl border border-rose-100 relative';
-                statusEl.className = isActive ? 'text-2xl font-black text-emerald-700' : 'text-2xl font-black text-rose-700';
+        async function postOp(id, action) {
+            const confirmed = confirm(`ID#${id} を${action === 'delete' ? '削除' : '投稿'}しますか？`);
+            if (!confirmed) return;
+            try {
+                await fetch(`/api/manage_post?action=${action}&id=${id}&pw=${adminPW}`);
+                await tryFetch();
+            } catch (e) { showAlert(e.message, 'Error', false); }
+        }
 
-                document.getElementById('kpi-clicks').innerText = (kpi.total_clicks || 0).toLocaleString();
-                document.getElementById('kpi-cv').innerText = (kpi.total_cv || 0).toLocaleString();
-                document.getElementById('kpi-revenue').innerText = (kpi.total_revenue || 0).toLocaleString();
-                document.getElementById('kpi-cvr').innerText = kpi.cvr || "0.0";
-                document.getElementById('kpi-epc').innerText = kpi.epc || 0;
-                document.getElementById('kpi-aov').innerText = kpi.aov || 0;
+        async function triggerCron(action) {
+            try { await fetch(`/api/cron?action=${action}&pw=${adminPW}`); setTimeout(tryFetch, 1000); } catch (e) { }
+        }
 
-                const tableBody = document.getElementById('queue-table-body');
-                const pList = (data.posts || [])
-                    .filter(p => p.status !== 'posted' && p.status !== 'deleted')
-                    .sort((a, b) => dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf());
-                tableBody.innerHTML = pList.map(p => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[8px] font-black bg-slate-100">${p.status}</span><div class="text-[9px] mt-1">${dayjs(p.scheduled_at).format('MM/DD HH:mm')}</div></td>
-                    <td class="px-4 py-3 font-bold">#${p.id}</td>
-                    <td class="px-4 py-3 text-xs line-clamp-1">${p.draft || ''}</td>
-                    <td class="px-4 py-3 text-right">
-                        <button onclick="postOp('${p.id}', 'force_post')" class="btn-op-blue">今すぐ投稿</button>
-                        <button onclick="postOp('${p.id}', 'delete')" class="btn-op-red ml-1">削除</button>
-                    </td>
-                </tr>`).join('');
+        async function runAdminAction(action) {
+            const confirmed = confirm('システムアクションを実行します。よろしいですか？');
+            if (!confirmed) return;
+            try {
+                const res = await fetch(`/api/cron?action=${action}`, { headers: { 'x-admin-password': adminPW } });
+                const data = await res.json();
+                if (data.success) { showAlert('System Action Completed.', 'Success'); await tryFetch(); }
+                else { showAlert(data.error || 'Error', 'Failed', false); }
+            } catch (e) { showAlert(e.message, 'Network Error', false); }
+        }
 
-                const sourceClicks = kpi.clicks_by_source || {};
-                const sourceCV = kpi.cv_by_source || {};
+        function render(data) {
+            const kpi = data.kpi || {};
+            document.getElementById('ops-queued').innerText = kpi.queued || 0;
+            document.getElementById('ops-today').innerText = kpi.posted_today || 0;
 
-                // LP Cards Rendering
-                const origin = window.location.origin;
-                const lpConfig = [
-                    { id: 'mini_lp', name: 'MAIN', icon: '🏠', accent: 'bg-indigo-600', url: origin + '/' },
-                    { id: 'hayfever', name: '花粉症', icon: '🌸', accent: 'bg-pink-500', url: origin + '/hayfever' },
-                    { id: 'dental', name: '歯科医院', icon: '🏥', accent: 'bg-indigo-400', url: origin + '/dental' },
-                    { id: 'pet', name: 'ペット', icon: '🐶', accent: 'bg-amber-500', url: origin + '/pet' },
-                    { id: '3dprinter', name: '3Dプリンタ', icon: '🖨️', accent: 'bg-slate-500', url: origin + '/3dprinter' }
-                ];
+            const statusContainer = document.getElementById('ops-status-container');
+            const statusEl = document.getElementById('ops-status');
+            const isActive = (kpi.autopost_status || '').match(/ON|ACTIVE/);
+            statusEl.innerText = isActive ? 'ACTIVE' : 'INACTIVE';
+            statusContainer.className = isActive ? 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200' : 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-rose-100 text-rose-700 border border-rose-200';
 
-                const cardsContainer = document.getElementById('lp-cards-container');
-                const template = document.getElementById('lp-card-template');
-                cardsContainer.innerHTML = '';
+            // Global KPI
+            document.getElementById('kpi-clicks').innerText = (kpi.total_clicks || 0).toLocaleString();
+            document.getElementById('kpi-cv').innerText = (kpi.total_cv || 0).toLocaleString();
+            document.getElementById('kpi-revenue').innerText = (kpi.total_revenue || 0).toLocaleString();
+            document.getElementById('kpi-cvr').innerText = kpi.cvr || "0.0";
+            document.getElementById('kpi-epc').innerText = kpi.epc || 0;
+            document.getElementById('kpi-aov').innerText = kpi.aov || 0;
 
-                lpConfig.forEach(conf => {
-                    const clone = template.content.cloneNode(true);
+            // System Logs
+            const logsContainer = document.getElementById('cron-logs-container');
+            logsContainer.innerHTML = (data.cronLogs || []).map(l => `
+                <div class="flex items-start gap-2 text-slate-400">
+                    <span class="font-black text-indigo-400 shrink-0">[${dayjs(l.ts).format('HH:mm')}]</span>
+                    <span>${l.msg}</span>
+                </div>
+            `).join('') || '<p class="text-[9px] text-slate-300 italic">No logs found</p>';
 
-                    // IDの表記ゆれやスペースを考慮して取得
-                    const targetId = conf.id.trim();
-                    let pv = (sourceClicks[targetId] || 0);
-                    let cvCount = 0;
-                    let revenue = 0;
+            // Queue Table
+            const tableBody = document.getElementById('queue-table-body');
+            const posts = (data.posts || [])
+                .filter(p => !['posted', 'deleted'].includes(p.status))
+                .sort((a, b) => dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf());
 
-                    if (sourceCV[targetId]) {
-                        cvCount = sourceCV[targetId].count || 0;
-                        revenue = sourceCV[targetId].revenue || 0;
-                    }
-
-                    // MAIN LP (mini_lp) の場合は mini_main も合算
-                    if (targetId === 'mini_lp') {
-                        pv += (sourceClicks['mini_main'] || 0);
-                        pv += (sourceClicks['mini_main '] || 0); // スペースありも考慮
-                        if (sourceCV['mini_main']) {
-                            cvCount += (sourceCV['mini_main'].count || 0);
-                            revenue += (sourceCV['mini_main'].revenue || 0);
-                        }
-                    }
-
-                    const cvr = pv > 0 ? ((cvCount / pv) * 100).toFixed(1) : '0.0';
-
-                    clone.querySelector('.lp-icon').innerText = conf.icon;
-                    clone.querySelector('.lp-name').innerText = conf.name;
-                    clone.querySelector('.lp-pv').innerText = pv.toLocaleString();
-                    clone.querySelector('.lp-cv-label').innerText = `CV: ${cvCount}`;
-                    clone.querySelector('.lp-cvr').innerText = `${cvr}%`;
-                    clone.querySelector('.lp-link').href = conf.url;
-
-                    const accent = clone.querySelector('.lp-accent');
-                    accent.className = `absolute bottom-0 left-0 w-full h-1 ${conf.accent}`;
-
-                    if (cvCount > 0) {
-                        const pill = clone.querySelector('.lp-cv-label').parentElement;
-                        const color = conf.accent.split('-')[1];
-                        pill.className = `flex-1 bg-${color}-50 border border-${color}-100 px-3 py-1.5 rounded-full flex items-center justify-between`;
-                        clone.querySelector('.lp-cv-label').className = `text-[8px] font-black text-${color}-600`;
-                        clone.querySelector('.lp-cvr').className = `text-[8px] font-black text-${color}-400`;
-                    }
-
-                    cardsContainer.appendChild(clone);
-                });
-
-                // Update Visitor Journeys
-                const journeys = data.topJourneys || [];
-                const journeyContainer = document.getElementById('stats-container');
-                const journeyEmpty = document.getElementById('stats-empty');
-
-                if (journeys.length > 0) {
-                    journeyContainer.innerHTML = journeys.map(j => `
-                        <div class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all">
-                            <div class="flex-1">
-                                <p class="text-[10px] font-black text-slate-700 leading-tight">${j.path}</p>
-                            </div>
-                            <div class="ml-2 bg-indigo-600 text-white px-2 py-1 rounded-lg text-[10px] font-black min-w-[30px] text-center">
-                                ${j.count}
-                            </div>
+            tableBody.innerHTML = posts.map(p => `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-8 py-4">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-0.5 rounded-md text-[8px] font-black bg-slate-100 text-slate-500 uppercase">${p.status}</span>
+                            <span class="text-[10px] font-bold text-slate-400">${dayjs(p.scheduled_at).format('MM/DD HH:mm')}</span>
                         </div>
-                    `).join('');
-                    journeyEmpty.classList.add('hidden');
-                } else {
-                    journeyContainer.innerHTML = '';
-                    journeyEmpty.classList.remove('hidden');
+                    </td>
+                    <td class="px-4 py-4 text-xs font-black text-slate-600">#${p.id}</td>
+                    <td class="px-4 py-4"><p class="text-xs text-slate-500 line-clamp-1 max-w-sm">${p.draft || ''}</p></td>
+                    <td class="px-8 py-4 text-right">
+                        <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="postOp('${p.id}', 'force_post')" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-indigo-600 hover:text-white transition">Push</button>
+                            <button onclick="postOp('${p.id}', 'delete')" class="bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-rose-600 hover:text-white transition">Del</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" class="p-10 text-center text-[10px] text-slate-300 font-bold uppercase tracking-widest">No pending posts</td></tr>';
+
+            // LP Cards
+            const sourceClicks = kpi.clicks_by_source || {};
+            const sourceCV = kpi.cv_by_source || {};
+            const lpConfig = [
+                { id: 'mini_lp', name: 'MAIN', icon: '🏠', accent: 'bg-indigo-600', url: window.location.origin + '/' },
+                { id: 'hayfever', name: '花粉症', icon: '🌸', accent: 'bg-pink-500', url: window.location.origin + '/hayfever' },
+                { id: 'dental', name: '歯科医院', icon: '🏥', accent: 'bg-cyan-500', url: window.location.origin + '/dental' },
+                { id: 'pet', name: 'ペット', icon: '🐶', accent: 'bg-amber-500', url: window.location.origin + '/pet' },
+                { id: '3dprinter', name: '3Dプリンタ', icon: '🖨️', accent: 'bg-slate-500', url: window.location.origin + '/3dprinter' }
+            ];
+
+            const cardsContainer = document.getElementById('lp-cards-container');
+            const template = document.getElementById('lp-card-template');
+            cardsContainer.innerHTML = '';
+
+            lpConfig.forEach(conf => {
+                const clone = template.content.cloneNode(true);
+                const targetId = conf.id.trim();
+                let pv = (sourceClicks[targetId] || 0);
+                let cvCount = 0;
+
+                if (targetId === 'mini_lp') {
+                    pv += (sourceClicks['mini_main'] || 0);
+                    cvCount += (sourceCV['mini_main']?.count || 0);
+                }
+                cvCount += (sourceCV[targetId]?.count || 0);
+
+                const cvr = pv > 0 ? ((cvCount / pv) * 100).toFixed(1) : '0.0';
+
+                clone.querySelector('.lp-icon').innerText = conf.icon;
+                clone.querySelector('.lp-name').innerText = conf.name;
+                clone.querySelector('.lp-pv').innerText = pv.toLocaleString();
+                clone.querySelector('.lp-cv-label').innerText = cvCount;
+                clone.querySelector('.lp-cvr').innerText = `${cvr}%`;
+                clone.querySelector('.lp-link').href = conf.url;
+
+                const accent = clone.querySelector('.lp-accent');
+                accent.className = `absolute bottom-0 left-0 w-full h-1.5 ${conf.accent}`;
+
+                if (cvCount > 0) {
+                    clone.querySelector('.lp-cv-label').className += ` text-indigo-600`;
                 }
 
-                // Update Internal Status Info
-                const internal = kpi.internal || { bot_clicks: 0, dev_clicks: 0 };
-                const statusLabel = document.getElementById('storage-status');
-                statusLabel.innerHTML = `LIVE | <span class="text-indigo-400">DEV: ${internal.dev_clicks}</span> | <span class="text-slate-500">BOT: ${internal.bot_clicks}</span>`;
+                cardsContainer.appendChild(clone);
+            });
 
-                const allSources = new Set([...Object.keys(sourceClicks), ...Object.keys(sourceCV)]);
-                document.getElementById('source-breakdown-body').innerHTML = Array.from(allSources).map(src => {
-                    const c = sourceClicks[src] || 0;
-                    const v = typeof sourceCV[src] === 'object' ? sourceCV[src].count : (sourceCV[src] || 0);
-                    return `<tr class="text-[9px] border-b border-slate-50"><td class="px-2 py-1">${src}</td><td class="text-right px-2 py-1">${c}</td><td class="text-right px-2 py-1">${v}</td><td class="text-right px-2 py-1">${c > 0 ? ((v / c) * 100).toFixed(1) : 0}%</td></tr>`;
-                }).join('');
+            // Path Analysis
+            const journeys = data.topJourneys || [];
+            const pathContainer = document.getElementById('stats-container');
+            const pathEmpty = document.getElementById('stats-empty');
+
+            if (journeys.length > 0) {
+                pathContainer.innerHTML = journeys.map(j => `
+                    <div class="bg-slate-50/50 p-4 rounded-3xl border border-slate-50 flex justify-between items-center group hover:bg-white hover:shadow-xl hover:border-slate-100 transition-all duration-300">
+                        <div class="flex-1 mr-4">
+                            <p class="text-[11px] font-black text-slate-600 leading-relaxed">${j.path}</p>
+                        </div>
+                        <div class="bg-indigo-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black shadow-lg shadow-indigo-100 shrink-0">
+                            ${j.count}
+                        </div>
+                    </div>
+                `).join('');
+                pathEmpty.classList.add('hidden');
+                pathEmpty.classList.remove('flex');
+            } else {
+                pathContainer.innerHTML = '';
+                pathEmpty.classList.remove('hidden');
+                pathEmpty.classList.add('flex');
             }
-            if (adminPW) tryFetch();
-        </script>
+
+            // Source Breakdown Table
+            const allSources = new Set([...Object.keys(sourceClicks), ...Object.keys(sourceCV)]);
+            document.getElementById('source-breakdown-body').innerHTML = Array.from(allSources).map(src => {
+                const c = sourceClicks[src] || 0;
+                const v = typeof sourceCV[src] === 'object' ? sourceCV[src].count : (sourceCV[src] || 0);
+                const r = typeof sourceCV[src] === 'object' ? sourceCV[src].revenue : 0;
+                if (!c && !v) return '';
+                return `
+                <tr class="text-[10px] font-bold group hover:bg-slate-50/50 transition-colors">
+                    <td class="px-4 py-3 text-slate-600">${src}</td>
+                    <td class="px-2 py-3 text-right text-slate-900">${c.toLocaleString()}</td>
+                    <td class="px-2 py-3 text-right text-indigo-600">${v.toLocaleString()}</td>
+                    <td class="px-2 py-3 text-right text-slate-400">${c > 0 ? ((v / c) * 100).toFixed(1) : 0}%</td>
+                    <td class="px-4 py-3 text-right font-black text-emerald-600">¥${r.toLocaleString()}</td>
+                </tr>`;
+            }).join('');
+
+            // Storage/System Info
+            document.getElementById('storage-status').innerHTML = `LIVE | <span class="text-indigo-400">DEV: ${kpi.internal?.dev_clicks || 0}</span> | <span class="text-slate-400">BOT: ${kpi.internal?.bot_clicks || 0}</span>`;
+        }
+
+        // Initialize
+        if (adminPW) tryFetch();
+    </script>
 </body>
 
 </html>
