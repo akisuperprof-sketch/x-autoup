@@ -2,7 +2,7 @@ const dataService = require('../src/services/data_service');
 
 module.exports = async (req, res) => {
     const { pid, type, lp } = req.query;
-    const lp_id = lp || 'mini_main';
+    const lp_id = lp || 'mini_lp';
 
     let baseUrl = "https://v0-air-future-mini-design.vercel.app";
     let destination = baseUrl;
