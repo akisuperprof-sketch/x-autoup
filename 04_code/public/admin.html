@@ -634,25 +634,32 @@
 
                 lpConfig.forEach(conf => {
                     const clone = template.content.cloneNode(true);
-                    // Combine mini_lp and mini_main for the MAIN card
-                    let basePV = (sourceClicks[conf.id] || 0);
-                    let cvData = { ...(sourceCV[conf.id] || { count: 0, revenue: 0 }) };
+                    
+                    // PVの合算ロジックを強化
+                    let pv = (sourceClicks[conf.id] || 0);
+                    let cvCount = 0;
+                    let revenue = 0;
 
-                    if (conf.id === 'mini_lp') {
-                        basePV += (sourceClicks['mini_main'] || 0);
-                        const mainCv = sourceCV['mini_main'] || { count: 0, revenue: 0 };
-                        cvData.count += (mainCv.count || 0);
-                        cvData.revenue += (mainCv.revenue || 0);
+                    if (sourceCV[conf.id]) {
+                        cvCount = sourceCV[conf.id].count || 0;
+                        revenue = sourceCV[conf.id].revenue || 0;
                     }
-                    const pv = basePV;
 
-                    const cv = cvData.count || 0;
-                    const cvr = pv > 0 ? ((cv / pv) * 100).toFixed(1) : '0.0';
+                    // MAIN LPの場合は古いID(mini_main)も合算
+                    if (conf.id === 'mini_lp') {
+                        pv += (sourceClicks['mini_main'] || 0);
+                        if (sourceCV['mini_main']) {
+                            cvCount += (sourceCV['mini_main'].count || 0);
+                            revenue += (sourceCV['mini_main'].revenue || 0);
+                        }
+                    }
+
+                    const cvr = pv > 0 ? ((cvCount / pv) * 100).toFixed(1) : '0.0';
 
                     clone.querySelector('.lp-icon').innerText = conf.icon;
                     clone.querySelector('.lp-name').innerText = conf.name;
                     clone.querySelector('.lp-pv').innerText = pv.toLocaleString();
-                    clone.querySelector('.lp-cv-label').innerText = `CV: ${cv}`;
+                    clone.querySelector('.lp-cv-label').innerText = `CV: ${cvCount}`;
                     clone.querySelector('.lp-cvr').innerText = `${cvr}%`;
                     clone.querySelector('.lp-link').href = conf.url;
 
