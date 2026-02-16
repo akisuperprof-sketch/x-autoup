@@ -124,19 +124,35 @@ module.exports = async (req, res) => {
             cv_by_source: cvBySource
         });
 
-        // Analysis: Top Stages
-        const stagePerformance = {};
-        posts.filter(p => p.status === 'posted').forEach(p => {
-            const s = p.stage || 'Unknown';
-            if (!stagePerformance[s]) stagePerformance[s] = { count: 0, likes: 0 };
-            stagePerformance[s].count++;
-            stagePerformance[s].likes += (p.metrics_like || 0);
+        // Analysis: Visitor Journeys (Reconstruct sequence per visitor)
+        const journeysByVisitor = {};
+        const sortedLogs = [...logRows].filter(r => r.get('action') === 'click')
+            .sort((a, b) => new Date(a.get('ts')) - new Date(b.get('ts')));
+
+        sortedLogs.forEach(row => {
+            const visitor = row.get('visitor_label');
+            const lp = row.get('lp_id') || 'default_lp';
+            if (visitor && visitor !== '記録日時') { // Skip explanation row
+                if (!journeysByVisitor[visitor]) journeysByVisitor[visitor] = [];
+                const lastLp = journeysByVisitor[visitor][journeysByVisitor[visitor].length - 1];
+                if (lastLp !== lp) {
+                    journeysByVisitor[visitor].push(lp);
+                }
+            }
         });
 
-        const topStages = Object.entries(stagePerformance)
-            .sort((a, b) => (b[1].likes / b[1].count) - (a[1].likes / a[1].count))
-            .slice(0, 3)
-            .map(([name, data]) => ({ name, avgLikes: (data.likes / data.count).toFixed(1) }));
+        const pathCounts = {};
+        Object.values(journeysByVisitor).forEach(path => {
+            if (path.length === 0) return;
+            // Map IDs to readable names for better display
+            const readablePath = path.map(id => dataService.getLpName(id)).join(' → ');
+            pathCounts[readablePath] = (pathCounts[readablePath] || 0) + 1;
+        });
+
+        const topJourneys = Object.entries(pathCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([path, count]) => ({ path, count }));
 
         // Latest Cron Logs
         let cronLogs = [];
@@ -173,11 +189,7 @@ module.exports = async (req, res) => {
             kpi,
             posts: cleanPosts.filter(p => p.status !== 'posted' && p.status !== 'deleted').slice(-100).reverse(),
             recent_posted: cleanPosts.filter(p => p.status === 'posted').slice(-10).reverse(),
-            top_performing: cleanPosts
-                .filter(p => p.status === 'posted' && (p.click_count > 0 || p.cv_count > 0))
-                .sort((a, b) => b.cv_count - a.cv_count || b.click_count - a.click_count)
-                .slice(0, 10),
-            topStages,
+            topJourneys,
             cronLogs,
             filters: { human_only: isHumanOnly, lp: selectedLP, period: period || 'all' }
         });

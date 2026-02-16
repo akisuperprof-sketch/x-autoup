@@ -467,12 +467,13 @@ class DataService {
 
     getLpName(lp_id) {
         const lpMap = {
-            'mini_main': 'メインLP',
-            'hayfever': '花粉専門LP',
-            'pet': 'ペット専門LP',
-            'dental': '歯科医院専門LP',
-            '3dprinter': '3Dプリンタ専門LP',
-            'hub': 'ハブ・ポータル',
+            'mini_lp': 'メイン',
+            'mini_main': 'メイン',
+            'hayfever': '花粉',
+            'pet': 'ペット',
+            'dental': '歯科',
+            '3dprinter': '3D',
+            'hub': 'ハブ',
             'default_lp': '未指定'
         };
         return lpMap[lp_id] || lp_id;
