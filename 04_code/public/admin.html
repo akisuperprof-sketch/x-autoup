@@ -634,7 +634,7 @@
 
                 lpConfig.forEach(conf => {
                     const clone = template.content.cloneNode(true);
-                    
+
                     // PVの合算ロジックを強化
                     let pv = (sourceClicks[conf.id] || 0);
                     let cvCount = 0;
@@ -666,7 +666,7 @@
                     const accent = clone.querySelector('.lp-accent');
                     accent.className = `absolute bottom-0 left-0 w-full h-1 ${conf.accent}`;
 
-                    if (cv > 0) {
+                    if (cvCount > 0) {
                         const pill = clone.querySelector('.lp-cv-label').parentElement;
                         const color = conf.accent.split('-')[1];
                         pill.className = `flex-1 bg-${color}-50 border border-${color}-100 px-3 py-1.5 rounded-full flex items-center justify-between`;
