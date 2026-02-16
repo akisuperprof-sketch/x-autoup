@@ -385,12 +385,12 @@ class SchedulerService {
         const posts = await dataService.getPosts();
         const now = new Date();
 
-        // Check posts from last 72 hours (3 days) to avoid spamming old posts
+        // Check posts from last 48 hours (2 days) to avoid spamming old posts
         const candidates = posts.filter(p =>
             p.status === 'posted' &&
             p.tweet_id &&
             (!p.metrics_checked_at_24h) &&
-            (now - new Date(p.posted_at)) < (72 * 3600000)
+            (now - new Date(p.posted_at)) < (48 * 3600000)
         );
 
         for (const post of candidates) {
