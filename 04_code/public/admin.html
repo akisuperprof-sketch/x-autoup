@@ -154,10 +154,18 @@
                     <div
                         class="h-14 md:h-16 bg-slate-900 rounded-2xl md:rounded-[28px] flex items-center justify-between px-4 md:px-5 shadow-xl relative overflow-hidden group">
                         <span
-                            class="text-[9px] md:text-[10px] font-black text-white/90 z-10 tracking-widest">エンジン</span>
+                            class="text-[9px] md:text-[10px] font-black text-white/90 z-10 tracking-widest uppercase">Engine
+                            <a href="https://cron-job.org" target="_blank"
+                                class="ml-2 text-indigo-400 hover:text-white transition text-[7px] md:text-[8px]">Cron
+                                ↗</a>
+                        </span>
                         <div class="flex gap-2 z-10">
+                            <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit#gid=155635466"
+                                target="_blank"
+                                class="bg-white/10 hover:bg-white/20 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black text-white transition-all flex items-center">台帳
+                                ↗</a>
                             <button onclick="triggerCron('scheduled_post')"
-                                class="bg-white/10 hover:bg-white/20 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black text-white transition-all">手動実行</button>
+                                class="bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black text-white transition-all">手動実行</button>
                             <button onclick="openGenerateModal()"
                                 class="bg-indigo-600 text-white px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black shadow-lg hover:shadow-indigo-500/50 transition-all active:scale-95">AI生成</button>
                         </div>
@@ -181,13 +189,16 @@
                             <thead class="bg-white/50 sticky top-0 z-10">
                                 <tr
                                     class="text-[8px] md:text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                                    <th class="py-2 md:py-3">配信予定</th>
+                                    <th class="py-2 md:py-3 px-2">日時</th>
                                     <th class="py-2 md:py-3">ID</th>
                                     <th class="py-2 md:py-3 font-medium">本文プレビュー</th>
-                                    <th class="py-2 md:py-3 text-right">操作</th>
+                                    <th class="py-2 md:py-3 text-right pr-2">Link / 操作</th>
                                 </tr>
                             </thead>
                             <tbody id="queue-table-body" class="divide-y divide-slate-100/50 text-[9px] md:text-[10px]">
+                            </tbody>
+                            <tbody id="history-table-body"
+                                class="divide-y divide-slate-100/50 text-[9px] md:text-[10px] border-t-2 border-slate-100">
                             </tbody>
                         </table>
                     </div>
@@ -414,16 +425,28 @@
             const posts = (data.posts || []).filter(p => !['posted', 'deleted'].includes(p.status)).sort((a, b) => dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf());
             document.getElementById('queue-table-body').innerHTML = posts.map(p => `
                 <tr class="group hover:bg-white/60 transition-all duration-300">
-                    <td class="py-3 text-slate-800"><span class="bg-indigo-50 text-indigo-400 px-1.5 py-0.5 rounded mr-2 font-black uppercase text-[7px]">${p.status}</span>${dayjs(p.scheduled_at).format('MM/DD HH:mm')}</td>
+                    <td class="py-3 px-2 text-slate-800"><span class="bg-indigo-50 text-indigo-400 px-1.5 py-0.5 rounded mr-2 font-black uppercase text-[7px]">${p.status}</span>${dayjs(p.scheduled_at).format('MM/DD HH:mm')}</td>
                     <td class="py-3 font-black text-slate-500 tracking-tighter">#${p.id}</td>
                     <td class="py-3 text-slate-400 line-clamp-1 italic text-[8px] md:text-[9px]">${p.draft || ''}</td>
-                    <td class="py-3 text-right">
+                    <td class="py-3 text-right pr-2">
                         <div class="flex gap-2 justify-end opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
                             <button onclick="postOp('${p.id}', 'force_post')" class="bg-indigo-600 text-white px-2 py-0.5 md:py-1 rounded text-[8px] font-black shadow-lg">投稿</button>
                             <button onclick="postOp('${p.id}', 'delete')" class="bg-rose-50 text-rose-600 px-2 py-0.5 md:py-1 rounded text-[8px] font-black ml-1">削除</button>
                         </div>
                     </td>
                 </tr>`).join('') || '<tr><td colspan="4" class="p-8 text-center text-slate-200 font-black uppercase tracking-widest text-[9px]">予約なし</td></tr>';
+
+            const recent = data.recent_posted || [];
+            document.getElementById('history-table-body').innerHTML = recent.map(p => `
+                <tr class="bg-slate-50/30 group hover:bg-white transition-all duration-300">
+                    <td class="py-2 px-2 text-slate-400"><span class="bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded mr-2 font-black uppercase text-[7px]">POSTED</span>${dayjs(p.posted_at).format('MM/DD HH:mm')}</td>
+                    <td class="py-2 font-black text-slate-300 tracking-tighter">#${p.id}</td>
+                    <td class="py-2 text-slate-300 line-clamp-1 italic text-[8px] md:text-[9px]">${p.draft || ''}</td>
+                    <td class="py-2 text-right pr-2">
+                        <a href="https://x.com/i/web/status/${p.tweet_id}" target="_blank" class="bg-slate-900 text-white px-3 py-1 rounded-lg text-[8px] font-black inline-flex items-center gap-1 hover:bg-indigo-600 transition-all">X ↗</a>
+                    </td>
+                </tr>`).join('');
+
 
             const sClicks = k.clicks_by_source || {};
             const sCV = k.cv_by_source || {};
