@@ -385,47 +385,59 @@ class SchedulerService {
         const posts = await dataService.getPosts();
         const now = new Date();
 
-        // Check posts from last 48 hours that are posted but missing 24h metrics
+        // Check posts from last 72 hours (3 days) to avoid spamming old posts
         const candidates = posts.filter(p =>
             p.status === 'posted' &&
             p.tweet_id &&
-            (!p.metrics_checked_at_24h)
+            (!p.metrics_checked_at_24h) &&
+            (now - new Date(p.posted_at)) < (72 * 3600000)
         );
 
         for (const post of candidates) {
-            const postedAt = new Date(post.posted_at);
-            const ageHours = (now - postedAt) / 3600000;
+            try {
+                const postedAt = new Date(post.posted_at);
+                const ageHours = (now - postedAt) / 3600000;
 
-            let update = null;
-            if (ageHours >= 24) {
-                logger.info(`Checking 24h metrics for ${post.tweet_id}`);
-                const data = await xService.getTweetMetrics(post.tweet_id);
-                if (data && data.public_metrics) {
-                    update = {
-                        metrics_like: data.public_metrics.like_count,
-                        metrics_rt: data.public_metrics.retweet_count,
-                        metrics_reply: data.public_metrics.reply_count,
-                        metrics_checked_at_24h: now.toISOString()
-                    };
+                let update = null;
+                if (ageHours >= 24) {
+                    logger.info(`Checking 24h metrics for ${post.tweet_id}`);
+                    const data = await xService.getTweetMetrics(post.tweet_id);
+                    if (data && data.public_metrics) {
+                        update = {
+                            metrics_like: data.public_metrics.like_count,
+                            metrics_rt: data.public_metrics.retweet_count,
+                            metrics_reply: data.public_metrics.reply_count,
+                            metrics_checked_at_24h: now.toISOString()
+                        };
+                    }
+                } else if (ageHours >= 1 && !post.metrics_checked_at_1h) {
+                    logger.info(`Checking 1h metrics for ${post.tweet_id}`);
+                    const data = await xService.getTweetMetrics(post.tweet_id);
+                    if (data && data.public_metrics) {
+                        update = {
+                            metrics_like: data.public_metrics.like_count,
+                            metrics_rt: data.public_metrics.retweet_count,
+                            metrics_reply: data.public_metrics.reply_count,
+                            metrics_checked_at_1h: now.toISOString()
+                        };
+                    }
                 }
-            } else if (ageHours >= 1 && !post.metrics_checked_at_1h) {
-                logger.info(`Checking 1h metrics for ${post.tweet_id}`);
-                const data = await xService.getTweetMetrics(post.tweet_id);
-                if (data && data.public_metrics) {
-                    update = {
-                        metrics_like: data.public_metrics.like_count,
-                        metrics_rt: data.public_metrics.retweet_count,
-                        metrics_reply: data.public_metrics.reply_count,
-                        metrics_checked_at_1h: now.toISOString()
-                    };
+
+                if (update) {
+                    await dataService.updatePost(post.id, update);
+                    stats.success_count++;
+                }
+                stats.processed_count++;
+            } catch (error) {
+                logger.error(`Error checking metrics for post ${post.id}`, error);
+                stats.failed_count++;
+
+                // If we hit a rate limit (429), stop processing other candidates in this run
+                if (error.message.includes('429')) {
+                    logger.warn('Rate limit hit during metrics check. Aborting remaining candidates.');
+                    break;
                 }
             }
-
-            if (update) {
-                await dataService.updatePost(post.id, update);
-                stats.success_count++;
-            }
-            stats.processed_count++;
         }
         return stats;
     }
