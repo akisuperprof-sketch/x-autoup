@@ -164,17 +164,25 @@ module.exports = async (req, res) => {
         const destination = "${destination}";
         
         async function runTracking() {
-            if (pid) {
-                localStorage.setItem('af_pid', pid);
-                localStorage.setItem('af_lp', "${lp_id}");
+            try {
+                if (pid) {
+                    localStorage.setItem('af_pid', pid);
+                    localStorage.setItem('af_lp', "${lp_id}");
+                }
+            } catch (e) {
+                console.warn('LocalStorage access failed:', e);
             }
 
             // Append pid to destination URL for CV tracking on the destination side
             let finalDest = destination;
-            if (pid) {
-                const url = new URL(destination);
-                url.searchParams.set('pid', pid);
-                finalDest = url.toString();
+            try {
+                if (pid) {
+                    const url = new URL(destination);
+                    url.searchParams.set('pid', pid);
+                    finalDest = url.toString();
+                }
+            } catch (e) {
+                console.warn('URL parsing failed:', e);
             }
 
             setTimeout(() => {
