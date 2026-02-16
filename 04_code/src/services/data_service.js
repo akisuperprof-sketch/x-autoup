@@ -444,7 +444,7 @@ class DataService {
                 await row.save();
                 return {
                     label: row.get('label'),
-                    is_dev: row.get('is_dev') === 'TRUE' || isAdmin,
+                    is_dev: row.get('is_dev') === '開発者' || row.get('is_dev') === 'TRUE' || isAdmin,
                     is_bot: isBot
                 };
             } else {
@@ -458,7 +458,7 @@ class DataService {
                     label: label,
                     first_seen: this._getJSTTimestamp(),
                     last_ts: this._getJSTTimestamp(),
-                    is_dev: isAdmin ? 'TRUE' : 'FALSE',
+                    is_dev: isAdmin ? '開発者' : '一般',
                     ua: ua || ''
                 });
                 return { label: label, is_dev: isAdmin, is_bot: isBot };
@@ -555,8 +555,8 @@ class DataService {
             ref: data.ref || '',
             ua: data.ua || '',
             ip_hash: ipHash,
-            is_bot: (data.is_bot || vInfo.is_bot) ? 'TRUE' : 'FALSE',
-            is_dev: vInfo.is_dev ? 'TRUE' : 'FALSE',
+            is_bot: (data.is_bot || vInfo.is_bot) ? 'BOT' : '人間',
+            is_dev: vInfo.is_dev ? '開発者' : '一般',
             revenue: parseFloat(data.revenue || 0),
             order_id: data.order_id || '',
             data: data.data ? JSON.stringify(data.data) : ''

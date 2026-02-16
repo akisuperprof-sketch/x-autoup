@@ -49,8 +49,8 @@ module.exports = async (req, res) => {
                     const row_pid = (row.get('post_id') || row.get('pid') || '').trim();
                     const action = row.get('action');
                     const row_lp = (row.get('lp_id') || 'default_lp').trim();
-                    const row_is_bot = row.get('is_bot') === 'TRUE';
-                    const row_is_dev = row.get('is_dev') === 'TRUE';
+                    const row_is_bot = row.get('is_bot') === 'BOT' || row.get('is_bot') === 'TRUE';
+                    const row_is_dev = row.get('is_dev') === '開発者' || row.get('is_dev') === 'TRUE';
                     const row_ts_str = row.get('ts') || row.get('timestamp');
                     const row_revenue = parseFloat(row.get('revenue') || 0);
 
