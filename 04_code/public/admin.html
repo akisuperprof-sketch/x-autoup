@@ -635,19 +635,21 @@
                 lpConfig.forEach(conf => {
                     const clone = template.content.cloneNode(true);
 
-                    // PVの合算ロジックを強化
-                    let pv = (sourceClicks[conf.id] || 0);
+                    // IDの表記ゆれやスペースを考慮して取得
+                    const targetId = conf.id.trim();
+                    let pv = (sourceClicks[targetId] || 0);
                     let cvCount = 0;
                     let revenue = 0;
 
-                    if (sourceCV[conf.id]) {
-                        cvCount = sourceCV[conf.id].count || 0;
-                        revenue = sourceCV[conf.id].revenue || 0;
+                    if (sourceCV[targetId]) {
+                        cvCount = sourceCV[targetId].count || 0;
+                        revenue = sourceCV[targetId].revenue || 0;
                     }
 
-                    // MAIN LPの場合は古いID(mini_main)も合算
-                    if (conf.id === 'mini_lp') {
+                    // MAIN LP (mini_lp) の場合は mini_main も合算
+                    if (targetId === 'mini_lp') {
                         pv += (sourceClicks['mini_main'] || 0);
+                        pv += (sourceClicks['mini_main '] || 0); // スペースありも考慮
                         if (sourceCV['mini_main']) {
                             cvCount += (sourceCV['mini_main'].count || 0);
                             revenue += (sourceCV['mini_main'].revenue || 0);

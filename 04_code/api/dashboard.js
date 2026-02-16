@@ -46,22 +46,21 @@ module.exports = async (req, res) => {
             try {
                 logRows = await googleSheetService.getRows('logs');
                 logRows.forEach(row => {
-                    const row_pid = row.get('post_id') || row.get('pid');
+                    const row_pid = (row.get('post_id') || row.get('pid') || '').trim();
                     const action = row.get('action');
-                    const row_lp = row.get('lp_id') || 'default_lp';
+                    const row_lp = (row.get('lp_id') || 'default_lp').trim();
                     const row_is_bot = row.get('is_bot') === 'TRUE';
                     const row_is_dev = row.get('is_dev') === 'TRUE';
                     const row_ts_str = row.get('ts') || row.get('timestamp');
                     const row_revenue = parseFloat(row.get('revenue') || 0);
 
                     // Date filter
-                    if (cutoffDate && row_ts_str) {
+                    if (cutoffDate && row_ts_str && row_ts_str !== '記録日時') {
                         const row_date = new Date(row_ts_str.replace(' ', 'T'));
                         if (row_date < cutoffDate) return;
                     }
 
                     // Internal stats
-                    if (!kpi.internal) kpi.internal = { bot_clicks: 0, dev_clicks: 0 }; // This line is redundant now as kpi.internal is initialized above
                     if (row_is_bot && action === 'click') kpi.internal.bot_clicks++;
                     if (row_is_dev && action === 'click') kpi.internal.dev_clicks++;
 
@@ -71,29 +70,30 @@ module.exports = async (req, res) => {
                     // LP Filter (Optional for specific views)
                     if (selectedLP !== 'all' && row_lp !== selectedLP) return;
 
-                    // Source Breakdown Aggregation (Human Only)
+                    // Source Breakdown (Always count even if no pid)
                     if (!clicksBySource[row_lp]) clicksBySource[row_lp] = 0;
                     if (!cvBySource[row_lp]) cvBySource[row_lp] = { count: 0, revenue: 0 };
 
                     if (action === 'click') {
                         clicksBySource[row_lp]++;
+                        totalClicks++; // Move out of row_pid check
                     } else if (action === 'cv') {
                         cvBySource[row_lp].count++;
                         cvBySource[row_lp].revenue += row_revenue;
+                        totalCV++;
+                        totalRevenue += row_revenue;
                     }
 
+                    // Only skip for per-post detailed stats
                     if (!row_pid) return;
 
                     if (!eventStats[row_pid]) eventStats[row_pid] = { clicks: 0, cv: 0, revenue: 0 };
 
                     if (action === 'click') {
                         eventStats[row_pid].clicks++;
-                        totalClicks++;
                     } else if (action === 'cv') {
                         eventStats[row_pid].cv++;
                         eventStats[row_pid].revenue += row_revenue;
-                        totalCV++;
-                        totalRevenue += row_revenue;
                     }
                 });
             } catch (e) {
