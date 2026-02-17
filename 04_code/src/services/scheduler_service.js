@@ -156,9 +156,15 @@ class SchedulerService {
         }
 
         if (filteredToPost.length === 0) {
-            logger.info(`[CRON] No due posts to process. Current JST: ${this._formatJST(nowJST)}`);
-            const currentHour = nowJST.getHours();
-            if ([8, 12, 20].includes(currentHour)) {
+            // Use Intl.DateTimeFormat to get the hour in JST regardless of server time
+            const hourJST = parseInt(new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Tokyo',
+                hour: 'numeric',
+                hour12: false
+            }).format(nowJST));
+
+            logger.info(`[CRON] No due posts to process. Current JST Hour: ${hourJST}`);
+            if ([8, 12, 20].includes(hourJST)) {
                 // Safety: Check if we ALREADY posted for this specific hour slot to avoid duplicate emergency gens (especially with 10-min crons)
                 const alreadyPostedThisSlot = posts.some(p => {
                     const scheduledAt = this._parseJST(p.scheduled_at);
@@ -166,15 +172,15 @@ class SchedulerService {
                         scheduledAt.getFullYear() === nowJST.getFullYear() &&
                         scheduledAt.getMonth() === nowJST.getMonth() &&
                         scheduledAt.getDate() === nowJST.getDate() &&
-                        scheduledAt.getHours() === currentHour;
+                        scheduledAt.getHours() === hourJST;
                 });
 
                 if (alreadyPostedThisSlot) {
-                    logger.info(`[CRON] Already posted for the ${currentHour}:00 slot. Skipping emergency gen.`);
+                    logger.info(`[CRON] Already posted for the ${hourJST}:00 slot. Skipping emergency gen.`);
                     return stats;
                 }
 
-                logger.warn(`[EMERGENCY] No posts found for ${currentHour}:00 slot (JST). Generating on the fly...`);
+                logger.warn(`[EMERGENCY] No posts found for ${hourJST}:00 slot (JST). Generating on the fly...`);
 
                 try {
                     await dataService.init();
@@ -212,13 +218,13 @@ class SchedulerService {
                             scheduled_at: this._formatJST(nowJST).split(' ')[0].replace(/-/g, '/') + ` ${scheduledTime}`
                         });
 
-                        await this.notifyWebhook(`🚨 【緊急自動生成】\n${currentHour}時用の予約がなかったため、AIがその場で記事を生成して投稿を完了しました。`);
+                        await this.notifyWebhook(`🚨 【緊急自動生成】\n${hourJST}時用の予約がなかったため、AIがその場で記事を生成して投稿を完了しました。`);
                         stats.success_count++;
                         return stats;
                     }
                 } catch (genError) {
                     logger.error('[EMERGENCY] Failed to generate failover post', genError);
-                    await this.notifyWebhook(`🛑 【緊急自動生成失敗】\n${currentHour}時の投稿が不能です。手動での対応をお願いします。\nError: ${genError.message}`);
+                    await this.notifyWebhook(`🛑 【緊急自動生成失敗】\n${hourJST}時の投稿が不能です。手動での対応をお願いします。\nError: ${genError.message}`);
                 }
             }
         }
@@ -464,7 +470,7 @@ class SchedulerService {
      */
     _getNowJST() {
         // Return current time as a real UTC date object.
-        // We will compare it with the UTC dates returned by _parseJST.
+        // This is safe for .getTime() comparisons against _parseJST results.
         return new Date();
     }
 
