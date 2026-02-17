@@ -1,4 +1,4 @@
-# AirFuture X-Operator System Specification v4.4
+# AirFuture X-Operator System Specification v4.5
 
 ## 1. 目的 (Core Mission)
 X（Twitter）からLP（ランディングページ）への遷移を最大化し、AirFutureの購入成約率（CVR）を極限まで高めること。運用コストを最小化しつつ、データに基づいた「稼げる投稿」を自動で改善し続ける。
@@ -91,6 +91,10 @@ Vercel Hobbyの標準仕様に準拠するため、プロジェクトをフラ�
 - **Database**: Google Sheets (Custom Logic via Google Sheet API)
 - **Monitoring**: 独自実装の「System Status」インジケーターによるDB死活監視。
 - **Tracking (v4.0)**:
+    - **メディア自動マッピング (Automated Media Mapping)**: [将来拡張]
+    - 投稿内容（カテゴリ）に基づき、最適な動画（mp4）または画像（jpg）をライブラリから自動選択。
+    - カテゴリ例: 花粉、3Dプリンタ、ペット、歯科。
+    - 奇数・偶数日で動画と画像を出し分ける等のロジックにより、タイムラインの多様性を最大化。
     - **Traffic Categorization**: `is_bot` (Crawler/Preview) / `is_dev` (Admin/Self) / `Human` (Users)
     - **Noise Exclusion**: Bot/Dev アクセスをメイン統計（PV/CV）から強制除外。
     - **ID Normalization**: `mini_lp` と `mini_main` の自動名寄せ集計。

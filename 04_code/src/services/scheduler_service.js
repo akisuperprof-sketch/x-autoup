@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const axios = require('axios');
 const env = require('../config/env');
 const pollenService = require('./pollen_service');
+const mediaMappingService = require('./media_mapping_service');
 
 class SchedulerService {
     constructor() {
@@ -204,11 +205,19 @@ class SchedulerService {
                         const emergencyPost = drafts[0];
                         logger.info(`[EMERGENCY] Posting newly generated content: ${emergencyPost.draft.substring(0, 20)}...`);
 
-                        const result = await xService.postTweet(emergencyPost.draft);
-
                         const randomSeconds = Math.floor(Math.random() * 60);
                         const randomMins = Math.floor(Math.random() * 5); // Add minor offset even for emergency
                         const scheduledTime = this._formatJST(nowJST).split(' ')[1]; // Current time like 08:02:15
+
+                        let mediaIds = [];
+                        // Media selection hook (for future files)
+                        const media = mediaMappingService.getMediaForText(emergencyPost.draft, nowJST);
+                        if (media) {
+                            logger.info(`[EMERGENCY] Media suggested: ${media.filePath} (${media.type})`);
+                            // mediaIds = await xService.uploadMediaFromFile(media.filePath); // Prototype hook
+                        }
+
+                        const result = await xService.postTweet(emergencyPost.draft, mediaIds);
 
                         await dataService.addPost({
                             ...emergencyPost,
@@ -248,7 +257,15 @@ class SchedulerService {
                 }
 
                 logger.info(`Posting tweet ID: ${post.id}`);
-                const result = await xService.postTweet(post.draft);
+
+                let mediaIds = [];
+                const media = mediaMappingService.getMediaForText(post.draft, nowJST);
+                if (media) {
+                    logger.info(`[CRON] Content suggests ${media.type}: ${media.filePath}. Files not yet ready, skipping attachment.`);
+                    // mediaIds = await xService.uploadMediaFromFile(media.filePath); // Planned linkage
+                }
+
+                const result = await xService.postTweet(post.draft, mediaIds);
 
                 await dataService.updatePost(post.id, {
                     status: 'posted',
@@ -365,7 +382,7 @@ class SchedulerService {
                             const jitteredDate = new Date(baseTime.getTime() + Math.floor(Math.random() * 8 * 60 * 1000));
                             const jitteredTime = this._formatJST(jitteredDate).split(' ')[1];
 
-                            const result = await dataService.addPost({
+                            await dataService.addPost({
                                 ...drafts[i],
                                 status: 'scheduled',
                                 scheduled_at: `${targetStr} ${jitteredTime}`,
