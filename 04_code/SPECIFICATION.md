@@ -28,11 +28,11 @@ X（Twitter）からLP（ランディングページ）への遷移を最大化�
         - アクセスを「人間」「開発者」「BOT」に3分類し、ノイズを除去。スプレッドシート表記も日本語（開発者/一般、BOT/人間）化。
     - **スマート・リトライ (v4.1)**: 投稿失敗時に文末を自動微調整（絵文字ローテーション）してXのスパムフィルターを回避。
     - **タスク分離 (v4.3)**: 定期実行は「投稿」に特化。統計取得は直近48時間に限定し、API 429エラー検知で即座に中断。管理画面にCron/台帳リンクを配置。
-- **管理画面の多重化・同期ルール (v7.0 New)**:
-    - **構造**: 管理画面 (`admin.html`) は、システムリポジトリ (`x-autoup`) と LPリポジトリ (`af-mini-specialLP`) の両方に存在する。
-    - **マスタールール**: 開発・修正は必ず `x-autoup` 側で先行実施し、完了後 **即座に LPリポジトリ側へファイルをコピー（同期）し、デプロイ** しなければならない。
-    - **運用正URL**: ユーザー運用は `https://airfuture.vercel.app/admin` を正とする。
-    - **UIガバナンス**: v7.0 以降の「1画面固定・プレミアム・シングルパネル」デザインを標準とし、情報の見切れやスクロールの発生を厳禁とする。
+- **管理画面の一本化 (v7.1 New)**:
+    - **構造**: 管理画面 (`admin.html`) は、**LPリポジトリ (`af-mini-specialLP`) のみに存在し、管理される**。システム側 (`x-autoup`) のファイルは廃止・削除された。
+    - **開発フロー**: 管理画面の UI 修正や機能追加を行う際は、直接 LPリポジトリ側の `public/admin.html` を編集・デプロイすること。
+    - **運用正URL**: `https://airfuture.vercel.app/admin`。
+    - **UIガバナンス**: 1画面固定のプレミアムデザインを標準とし、情報の見切れやスクロールの発生を厳禁とする。
 
 ### 2.3 ステータス管理仕様 (Status Management)
 スプレッドシートの `status` 列により、各記事の挙動を制御する。
@@ -59,48 +59,41 @@ X（Twitter）からLP（ランディングページ）への遷移を最大化�
 - **ルーティング防衛**: `vercel.json` の書き換え時は、APIエンドポイントの拡張子（.js）をリライト先から除去するルールを厳守する。
 - **変更履歴の強制**: システム構成に関わる変更は必ず `CHANGELOG.md` に記録し、`GOVERNANCE.md` に準拠すること。
 
-## 4. ディレクトリ構成 (System Architecture)
-Vercel Hobbyの標準仕様に準拠するため、プロジェクトをフラットな構成に統一しています。
+## 4. システム構成定義 (System Architecture)
 
-```
-/ (Root)
-├── api/                # エンドポイント (cron, go, admin等)
-├── src/                # サービス・ロジック
-├── public/             # 静的ファイル (admin.html等)
-├── vercel.json         # ルーティング設定
-└── package.json        # 依存関係
-```
+### 4.1 プロジェクト・ドメイン・関係性
 
-## 5. 正しいアクセス方法
-```
-"https://airfuture.vercel.app/api/cron"  // 定期実行 (内部で x-autoup にプロキシ)
-"https://airfuture.vercel.app/admin"    // 管理画面
-"https://airfuture.vercel.app/go"       // リンク計測
-```
+| ドメイン (Domain) | プロジェクト名 | 役割 | 主要パス |
+| :--- | :--- | :--- | :--- |
+| **airfuture.vercel.app** | **x-autoup** | **バックエンド業務 (Backend & Gateway)**<br>システムの心臓部。CV計測、データ蓄積、Xへの自動投稿、購入ページへのゲートウェイ。 | `/apply`: 計測ゲートウェイ<br>`/api/*`: 投稿エンジン・ログAPI |
+| **v0-air-future-mini-design.vercel.app** | **af-mini-specialLP** | **フロントエンド業務 (Frontend UI)**<br>ユーザーへの「訴求の顔」。メインおよび専門領域別のLPを提供。 | `/`: メインLP (ブランド世界観・4種の利用シーン) |
 
-**理由**: 
-- `vercel.json` では `/apply` と `/admin` のみがルーティング定義されている
-- `.html` 拡張子付きのパスは存在しないため404エラーとなる
+### 4.2 専門LP群 (集約特化型)
+これらは `af-mini-specialLP` プロジェクト内で構築され、`airfuture.vercel.app` 経由で提供されます。
 
-**参照**: `vercel.json` L26-27 (apply), L14-19 (admin)
+| 専門ターゲット | パス | URL (運用用) | テーマカラー | 訴求内容のポイント |
+| :--- | :--- | :--- | :--- | :--- |
+| 花粉症専門 | `/hayfever` | [https://airfuture.vercel.app/hayfever](https://airfuture.vercel.app/hayfever) | 🟡 イエロー系 | 花粉の不活化、薬に頼らない対策 |
+| 歯科医院専門 | `/dental` | [https://airfuture.vercel.app/dental](https://airfuture.vercel.app/dental) | 🔵 水色系 | 院内感染防止、技工室のレジン臭対策 |
+| ペットオーナー | `/pet` | [https://airfuture.vercel.app/pet](https://airfuture.vercel.app/pet) | 🟢 グリーン系 | ペット臭の元からの分解、除菌・消臭 |
+| 3Dプリンター | `/3dprinter` | [https://airfuture.vercel.app/3dprinter](https://airfuture.vercel.app/3dprinter) | ⚫ ブラック系 | 造形中の有害ガス(VOC)除去 |
+| **計測用** | `/apply` | [https://airfuture.vercel.app/apply](https://airfuture.vercel.app/apply) | ⚪ 白 (計測経由) | 各LPの「購入する」ボタンクリック先 |
+| **admin (管理)** | `/admin` | [https://airfuture.vercel.app/admin](https://airfuture.vercel.app/admin) | - | 統合管理ダッシュボード |
+
+### 4.3 誘導および流入設計
+- **誘導入口用URL**: `https://airfuture.vercel.app` (Xのプロフに設置)
+- **設計コンセプト**: ここを踏むと計測が始まり、瞬間的にメインLPに繋がる設計。
 
 ## 5. インフラ構成 (Infrastructure)
 
 ### 5.1 配信スケジュール (Cron Architecture)
-- **Primary**: `cron-job.org` (外部サービス) による毎時実行。Vercelの無料枠制限（1日1回）をバイパスし、予約通りの配信を担保する。
-- **Secondary**: Vercel Cron (Daily) による午前8時のバックアップ実行。
-- **認証**: パラメータ `?pw=[ADMIN_PASSWORD]` によるアクセス制御。
+- **Primary**: `cron-job.org` (外部サービス) による毎時実行。Vercelの無料枠制限を回避。
+- **Secondary**: Vercel Cron (Daily) によるバックアップ実行。
 
 ### 5.2 技術スタック
 - **Hosting**: Vercel (Hobby)
 - **Database**: Google Sheets (Custom Logic via Google Sheet API)
-- **Monitoring**: 独自実装の「System Status」インジケーターによるDB死活監視。
-- **Tracking (v4.0)**:
-    - **メディア自動マッピング (Automated Media Mapping)**: [将来拡張]
-    - 投稿内容（カテゴリ）に基づき、最適な動画（mp4）または画像（jpg）をライブラリから自動選択。
-    - カテゴリ例: 花粉、3Dプリンタ、ペット、歯科。
-    - 奇数・偶数日で動画と画像を出し分ける等のロジックにより、タイムラインの多様性を最大化。
-    - **Traffic Categorization**: `is_bot` (Crawler/Preview) / `is_dev` (Admin/Self) / `Human` (Users)
-    - **Noise Exclusion**: Bot/Dev アクセスをメイン統計（PV/CV）から強制除外。
+- **Tracking**:
+    - **Traffic Categorization**: `is_bot` (Crawler) / `is_dev` (Admin) / `Human` (Users)
+    - **Noise Exclusion**: Bot/Dev アクセスを統計から除外。
     - **ID Normalization**: `mini_lp` と `mini_main` の自動名寄せ集計。
-- **Data Integrity**: Slot ID Primary Key (Sheets-based constraint)

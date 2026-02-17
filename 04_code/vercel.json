@@ -14,10 +14,6 @@
       "destination": "/api/go"
     },
     {
-      "source": "/admin",
-      "destination": "/public/admin.html"
-    },
-    {
       "source": "/apply",
       "destination": "/public/apply.html"
     },
