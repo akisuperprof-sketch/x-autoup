@@ -173,15 +173,43 @@ module.exports = async (req, res) => {
             }
         });
 
-        const topJourneys = Object.entries(
-            Object.values(journeysByVisitor).reduce((acc, path) => {
-                if (path.length > 0) {
-                    const readable = path.map(id => dataService.getLpName(id)).join(' → ');
-                    acc[readable] = (acc[readable] || 0) + 1;
-                }
-                return acc;
-            }, {})
-        ).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([path, count]) => ({ path, count }));
+        // Visitor Journeys (PV Based for Consistency)
+        const pathStats = {};
+        const journeyPaths = {}; // visitor -> array of lp_ids (for sequence)
+        const journeyClicks = {}; // visitor -> total clicks in this journey
+
+        sortedLogs.forEach(row => {
+            const visitor = row.get('visitor_label') || '匿名';
+            const lp_id = row.get('lp_id') || 'default_lp';
+
+            if (!journeyPaths[visitor]) journeyPaths[visitor] = [];
+            if (!journeyClicks[visitor]) journeyClicks[visitor] = 0;
+
+            // sequence tracking (unique sequence)
+            if (journeyPaths[visitor][journeyPaths[visitor].length - 1] !== lp_id) {
+                journeyPaths[visitor].push(lp_id);
+            }
+            journeyClicks[visitor]++;
+        });
+
+        Object.keys(journeyPaths).forEach(visitor => {
+            const path = journeyPaths[visitor];
+            if (path.length > 0) {
+                const readable = path.map(id => dataService.getLpName(id)).join(' → ');
+                if (!pathStats[readable]) pathStats[readable] = { visitors: 0, clicks: 0 };
+                pathStats[readable].visitors++;
+                pathStats[readable].clicks += journeyClicks[visitor];
+            }
+        });
+
+        const topJourneys = Object.entries(pathStats)
+            .sort((a, b) => b[1].clicks - a[1].clicks)
+            .slice(0, 10)
+            .map(([path, stats]) => ({
+                path,
+                count: stats.clicks, // Primary display is now CLICKS (PV)
+                visitors: stats.visitors
+            }));
 
         // Cron Logs
         let cronLogs = [];
