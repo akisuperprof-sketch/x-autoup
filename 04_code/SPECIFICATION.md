@@ -10,7 +10,7 @@
 - **定期実行の軽量化**: 定期実行時は「投稿」タスクのみを実行し、API 429エラーを徹底回避。
 
 ## [v4.0] - 2026-02-16
-# AirFuture X-Operator System Specification v4.3
+# AirFuture X-Operator System Specification v4.4
 
 ## 1. 目的 (Core Mission)
 X（Twitter）からLP（ランディングページ）への遷移を最大化し、AirFutureの購入成約率（CVR）を極限まで高めること。運用コストを最小化しつつ、データに基づいた「稼げる投稿」を自動で改善し続ける。
