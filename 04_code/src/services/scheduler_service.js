@@ -5,6 +5,7 @@ const contentGeneratorService = require('./content_generator_service');
 const logger = require('../utils/logger');
 const axios = require('axios');
 const env = require('../config/env');
+const pollenService = require('./pollen_service');
 
 class SchedulerService {
     constructor() {
@@ -181,8 +182,11 @@ class SchedulerService {
                     const dayOfWeek = nowJST.getDay();
                     const stage = ['S5', 'S1', 'S2', 'S3', 'S1', 'S2', 'S4'][dayOfWeek];
 
+                    const pollenInfo = await pollenService.getPollenForecast();
                     const context = {
                         season: this._getSeason(nowJST),
+                        tokyoPollen: pollenInfo.tokyo,
+                        isPollenSeason: pollenInfo.isPollenSeason,
                         trend: 'Emergency Failover Posting',
                         count: 1,
                         targetStage: stage,
@@ -331,8 +335,11 @@ class SchedulerService {
                         const baseStage = ['S5', 'S1', 'S2', 'S3', 'S1', 'S2', 'S4'][dayOfWeek];
 
                         const recentPosts = posts.slice(-10); // Provide last 10 for diversity
+                        const pollenInfo = await pollenService.getPollenForecast();
                         const context = {
                             season: this._getSeason(targetDate),
+                            tokyoPollen: pollenInfo.tokyo,
+                            isPollenSeason: pollenInfo.isPollenSeason,
                             trend: 'Automated Daily Fill-in',
                             count: missingSlots.length,
                             targetStage: baseStage,
@@ -515,6 +522,10 @@ class SchedulerService {
 
     _getSeason(date) {
         const month = date.getMonth() + 1;
+        const day = date.getDate();
+
+        // From mid-February, start treating as Spring/Pollen season
+        if (month === 2 && day >= 15) return 'Spring (Early Pollen Season)';
         if (month >= 3 && month <= 5) return 'Spring';
         if (month >= 6 && month <= 8) return 'Summer';
         if (month >= 9 && month <= 11) return 'Autumn';

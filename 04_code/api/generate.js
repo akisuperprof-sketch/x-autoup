@@ -3,6 +3,7 @@ const dataService = require('../src/services/data_service');
 const logger = require('../src/utils/logger');
 
 const env = require('../src/config/env');
+const pollenService = require('../src/services/pollen_service');
 
 module.exports = async (req, res) => {
     // Simple Auth
@@ -36,8 +37,11 @@ module.exports = async (req, res) => {
         const today = new Date();
         const totalCount = parseInt(days) * parseInt(count);
 
+        const pollenInfo = await pollenService.getPollenForecast();
         const context = {
             season: _getSeason(today),
+            tokyoPollen: pollenInfo.tokyo,
+            isPollenSeason: pollenInfo.isPollenSeason,
             trend: storyMode ? 'Story Mode' : 'General',
             count: totalCount,
             targetStage: stage,
@@ -102,6 +106,8 @@ module.exports = async (req, res) => {
 
 function _getSeason(date) {
     const month = date.getMonth() + 1;
+    const day = date.getDate();
+    if (month === 2 && day >= 15) return 'Spring (Early Pollen Season)';
     if (month >= 3 && month <= 5) return 'Spring';
     if (month >= 6 && month <= 8) return 'Summer';
     if (month >= 9 && month <= 11) return 'Autumn';

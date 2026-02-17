@@ -132,10 +132,12 @@ class ContentGeneratorService {
         - Current Status: ${salesAllowed ? 'SALES_OK' : 'EDUCATION_ONLY'}.
 
         **INPUT DATA:**
-        - Season: ${season}
+        - Season: ${season} (IMPORTANT: Use Spring/Pollen phrases. NO Winter phrases.)
+        - Current Pollen Level (Tokyo): ${context.tokyoPollen || 'Checking...'}
         - Base Theme: ${targetStage} (S1-S5)
         - Target Enemy: ${enemyList}
         - Knowledge: ${memoContent || 'Medical-grade ion cluster technology.'}
+        ${context.isPollenSeason ? 'NOTE: Pollen season is ACTIVE. Focus on relief from sneezing, itchy eyes, and deep purification.' : ''}
         ${context.recentPosts ? `\n**RECENT POSTS (TO AVOID SIMILARITY):**\n${context.recentPosts.map(p => `- ${p.draft}`).join('\n')}` : ''}
         ${templates ? `\n**TEMPLATES:**\n${templates}` : ''}
 
@@ -159,7 +161,8 @@ class ContentGeneratorService {
            - **STRICT**: Only use the specific URLs listed above. NEVER use /go endpoints or query parameters in post text.
            - No anxiety-inducing words.
         7. **DIVERSITY**: Ensure each of the ${count} posts has a different focus, target audience, or emotional angle.
-        8. No "AI greetings".
+        8. **POLLEN CONTEXT**: If Pollen Level is '多い' or '非常に多い', use strong empathy about suffering. If '少ない', focus on prevention or the early feel of spring.
+        9. No "AI greetings".
 
         ** OUTPUT FORMAT(JSON Only):**
             [
