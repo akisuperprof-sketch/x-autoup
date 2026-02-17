@@ -268,26 +268,24 @@ module.exports = async (req, res) => {
 };
 
 /**
- * 24時間の時系列PVデータを生成
+ * 直近7日間の日次PVデータを生成
  */
 function generatePvTrend(logs, nowJST) {
     const bins = {};
-    // 直近24時間の枠を作成
-    for (let i = 23; i >= 0; i--) {
-        const d = new Date(nowJST.getTime() - i * 60 * 60 * 1000);
-        const key = `${d.getHours()}:00`;
+    // 直近7日間の枠を作成 (今日を含む)
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(nowJST.getTime() - i * 24 * 60 * 60 * 1000);
+        const key = `${d.getMonth() + 1}/${d.getDate()}`;
         bins[key] = 0;
     }
 
     logs.forEach(row => {
         try {
             const ts = row.get('ts') || row.get('timestamp');
+            if (!ts) return;
             const d = new Date(ts.replace(' ', 'T'));
-            const diffHours = (nowJST - d) / (1000 * 60 * 60);
-            if (diffHours >= 0 && diffHours < 24) {
-                const key = `${d.getHours()}:00`;
-                if (bins[key] !== undefined) bins[key]++;
-            }
+            const key = `${d.getMonth() + 1}/${d.getDate()}`;
+            if (bins[key] !== undefined) bins[key]++;
         } catch (e) { }
     });
 
