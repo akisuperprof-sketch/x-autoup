@@ -205,33 +205,38 @@
                 </div>
             </div>
 
-            <!-- 中段: LPパフォーマンス -->
+            <!-- 中段: LPパフォーマンス (見切れ防止のため高さを自動に) -->
             <div id="lp-cards-container"
-                class="md:h-[16%] flex gap-2 md:gap-3 shrink-0 overflow-x-auto pb-1 invisible scroll-hide">
+                class="flex gap-2 md:gap-4 shrink-0 overflow-x-auto pb-4 invisible scroll-hide min-h-[160px] md:min-h-[180px]">
                 <template id="lp-card-template">
                     <div
-                        class="flex-1 min-w-[140px] md:min-w-[200px] glass rounded-3xl md:rounded-[36px] p-3 md:p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:shadow-2xl transition-all border border-white/50">
-                        <div class="text-2xl md:text-3xl mb-1 lp-icon">🏠</div>
-                        <div
-                            class="text-[7px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest lp-name">
-                            MAIN</div>
-                        <div class="flex items-baseline gap-0.5 md:gap-1 my-0.5 md:my-1">
-                            <span class="text-xl md:text-2xl font-black tracking-tighter lp-pv">0</span>
-                            <span class="text-[7px] md:text-[8px] text-slate-300 font-black uppercase">pv</span>
+                        class="flex-1 min-w-[150px] md:min-w-[210px] glass rounded-[32px] md:rounded-[40px] p-4 md:p-6 flex flex-col items-center justify-between relative overflow-hidden group hover:shadow-2xl transition-all border border-white/60 bg-white/30">
+                        <div class="flex flex-col items-center">
+                            <div
+                                class="text-3xl md:text-4xl mb-2 lp-icon transform group-hover:scale-110 transition-transform">
+                                🏠</div>
+                            <div
+                                class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] lp-name mb-2">
+                                MAIN</div>
+                            <div class="flex items-baseline gap-1 my-1">
+                                <span
+                                    class="text-2xl md:text-3xl font-black tracking-tighter text-slate-800 lp-pv">0</span>
+                                <span class="text-[8px] md:text-[9px] text-slate-400 font-black uppercase">pv</span>
+                            </div>
                         </div>
                         <div
-                            class="w-full grid grid-cols-2 pt-1.5 md:pt-2 border-t border-slate-100/50 mt-1 text-center font-bold">
-                            <div class="border-r border-slate-100/50">
-                                <p class="text-[6px] md:text-[7px] text-slate-300 uppercase">成約</p>
-                                <p class="text-[10px] md:text-[11px] lp-cv-label">0</p>
+                            class="w-full grid grid-cols-2 pt-3 border-t border-slate-200/50 mt-2 text-center font-bold">
+                            <div class="border-r border-slate-200/50">
+                                <p class="text-[7px] md:text-[8px] text-slate-400 uppercase mb-0.5">成約</p>
+                                <p class="text-[11px] md:text-[13px] text-slate-700 lp-cv-label">0</p>
                             </div>
                             <div>
-                                <p class="text-[6px] md:text-[7px] text-slate-300 uppercase">率</p>
-                                <p class="text-[10px] md:text-[11px] lp-cvr text-indigo-600">0%</p>
+                                <p class="text-[7px] md:text-[8px] text-slate-400 uppercase mb-0.5">率</p>
+                                <p class="text-[11px] md:text-[13px] lp-cvr text-indigo-600">0%</p>
                             </div>
                         </div>
                         <a href="#" target="_blank" class="absolute inset-0 z-10 lp-link"></a>
-                        <div class="absolute bottom-0 left-0 w-full h-1 lp-accent"></div>
+                        <div class="absolute bottom-0 left-0 w-full h-1.5 lp-accent opacity-80"></div>
                     </div>
                 </template>
             </div>
@@ -489,12 +494,22 @@
             } else { pathContainer.innerHTML = ''; pathEmpty.classList.remove('hidden'); }
 
             const allSrc = new Set([...Object.keys(sClicks), ...Object.keys(sCV)]);
-            document.getElementById('source-breakdown-body').innerHTML = Array.from(allSrc).map(s => {
+            document.getElementById('source-breakdown-body').innerHTML = Array.from(allSrc).sort().map(s => {
                 const val = sClicks[s] || 0; const coVal = sCV[s]?.count || 0;
                 if (!val && !coVal) return '';
-                return `<tr><td class="py-1.5 px-3 md:px-4 text-slate-400">${s}</td><td class="text-right text-slate-700 font-bold">${val.toLocaleString()}</td><td class="text-right text-indigo-500 font-bold">${coVal.toLocaleString()}</td><td class="text-right px-3 md:px-6 font-black text-emerald-600">¥${(sCV[s]?.revenue || 0).toLocaleString()}</td></tr>`;
+                
+                // Map ID to Japanese Name and Icon for better visibility
+                const master = lps.find(l => l.id === s || (l.aliases && l.aliases.includes(s)));
+                const displayName = master ? `${master.icon} ${master.name}` : s;
+
+                return `<tr>
+                    <td class="py-2.5 px-3 md:px-4 text-slate-600 font-bold text-[10px] md:text-[11px]">${displayName}</td>
+                    <td class="text-right text-slate-800 font-black text-[11px] md:text-[12px]">${val.toLocaleString()}</td>
+                    <td class="text-right text-indigo-600 font-black text-[11px] md:text-[12px]">${coVal.toLocaleString()}</td>
+                    <td class="text-right px-3 md:px-6 font-black text-emerald-600 text-[11px] md:text-[12px]">¥${(sCV[s]?.revenue || 0).toLocaleString()}</td>
+                </tr>`;
             }).join('');
-            document.getElementById('storage-status').innerHTML = `同期済 | <span class="text-indigo-400">DEV: ${k.internal?.dev_clicks || 0}</span> | <span class="text-slate-400">BOT: ${k.internal?.bot_clicks || 0}</span>`;
+            document.getElementById('storage-status').innerHTML = `<span class="opacity-50">SYNCED</span> | <span class="text-indigo-500 font-black">DEV: ${k.internal?.dev_clicks || 0}</span> | <span class="text-slate-400 font-black">BOT: ${k.internal?.bot_clicks || 0}</span>`;
         }
         if (adminPW) tryFetch();
     </script>
