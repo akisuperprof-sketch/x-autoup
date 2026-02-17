@@ -128,8 +128,35 @@ module.exports = async (req, res) => {
             aov,
             cvr,
             clicks_by_source: clicksBySource,
-            cv_by_source: cvBySource
+            cv_by_source: cvBySource,
+            pv_trend: generatePvTrend(logRows, isHumanOnly, cutoffDate)
         });
+
+        // Helper to generate 24h trend data
+        function generatePvTrend(rows, humanOnly, cutoff) {
+            const bins = {};
+            const now = new Date();
+            for (let i = 23; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+                const key = d.toISOString().substring(0, 13); // YYYY-MM-DDTHH
+                bins[key] = 0;
+            }
+
+            rows.forEach(r => {
+                if (r.get('action') !== 'click') return;
+                const ts = r.get('ts') || r.get('timestamp');
+                if (!ts || ts === '記録日時') return;
+
+                const isBot = (r.get('is_bot') || '').toString().toUpperCase().match(/BOT|TRUE|1/);
+                const isDev = (r.get('is_dev') || '').toString().match(/開発者|管理者|TRUE|1/);
+                if (humanOnly && (isBot || isDev)) return;
+
+                const rowDate = new Date(ts.replace(' ', 'T'));
+                const key = rowDate.toISOString().substring(0, 13);
+                if (bins[key] !== undefined) bins[key]++;
+            });
+            return Object.entries(bins).sort().map(([t, val]) => ({ t: t.split('T')[1] + ':00', v: val }));
+        }
 
         // Visitor Journeys (Filter to match main KPI)
         const journeysByVisitor = {};
