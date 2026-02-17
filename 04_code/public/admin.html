@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AirFuture Premium Analytics v6.0</title>
+    <title>AirFuture Premium Analytics v7.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
     <link
@@ -12,8 +12,8 @@
         rel="stylesheet">
     <style>
         :root {
-            --glass: rgba(255, 255, 255, 0.7);
-            --border: rgba(255, 255, 255, 0.5);
+            --glass: rgba(255, 255, 255, 0.75);
+            --border: rgba(255, 255, 255, 0.6);
         }
 
         body {
@@ -24,7 +24,6 @@
             min-height: 100vh;
         }
 
-        /* PC画面（md以上）でのみ1画面固定レイアウトを適用 */
         @media (min-width: 768px) {
             body {
                 height: 100vh;
@@ -34,7 +33,7 @@
 
         .glass {
             background: var(--glass);
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(12px);
             border: 1px solid var(--border);
             box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.03);
         }
@@ -43,7 +42,6 @@
             display: none !important;
         }
 
-        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -61,7 +59,7 @@
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(8px);
+                transform: translateY(4px);
             }
 
             to {
@@ -71,29 +69,55 @@
         }
 
         .fade-in {
-            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .scrolling-content {
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }
+
+        /* 1画面収めるためのセクション調整 */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding-left: 0.25rem;
+        }
+
+        .section-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 9999px;
+            background-color: #6366f1;
+        }
+
+        .section-title {
+            font-size: 0.65rem;
+            font-weight: 900;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
         }
     </style>
 </head>
 
-<body class="p-3 md:p-4 flex flex-col">
+<body class="p-3 md:p-4 flex flex-col gap-3">
     <!-- 認証オーバーレイ -->
     <div id="auth-overlay"
         class="fixed inset-0 bg-slate-900/40 backdrop-blur-2xl z-[9999] flex items-center justify-center p-4">
-        <div
-            class="bg-white p-8 md:p-12 rounded-[40px] md:rounded-[50px] max-w-sm w-full shadow-2xl border border-slate-100 text-center animate-pulse-slow">
+        <div class="bg-white p-8 rounded-[40px] max-w-sm w-full shadow-2xl border border-slate-100 text-center">
             <div
-                class="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-2xl md:rounded-3xl mx-auto mb-6 md:mb-8 flex items-center justify-center shadow-2xl shadow-indigo-200">
-                <span class="text-2xl md:text-3xl font-black text-white">AF</span>
+                class="w-16 h-16 bg-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-indigo-200">
+                <span class="text-2xl font-black text-white">AF</span>
             </div>
-            <h2 class="text-xl md:text-2xl font-black mb-1">管理者ポータル</h2>
-            <p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em] mb-8 md:mb-10">Admin
-                Infra v6.0
-            </p>
+            <h2 class="text-xl font-black mb-1">管理者ポータル</h2>
+            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.4em] mb-8">Admin Infra v7.0</p>
             <input type="password" id="admin-pw" placeholder="パスワードを入力"
-                class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl md:rounded-3xl px-6 md:px-8 py-4 md:py-5 mb-4 focus:border-indigo-500 outline-none transition-all font-mono text-center text-base md:text-lg">
+                class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 mb-4 focus:border-indigo-500 outline-none transition-all font-mono text-center">
             <button onclick="checkAuth()"
-                class="w-full bg-indigo-600 text-white font-black py-4 md:py-5 rounded-2xl md:rounded-3xl hover:bg-slate-900 transition-all active:scale-95 shadow-xl shadow-indigo-100">
+                class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-slate-900 transition-all active:scale-95 shadow-xl shadow-indigo-100">
                 ログイン
             </button>
         </div>
@@ -101,31 +125,58 @@
 
     <!-- メインコンテンツ -->
     <div id="main-content"
-        class="hidden-auth opacity-0 flex-1 flex flex-col gap-4 max-w-[1600px] mx-auto w-full md:overflow-hidden">
+        class="hidden-auth opacity-0 flex-1 flex flex-col gap-3 max-w-[1700px] mx-auto w-full md:overflow-hidden">
 
         <!-- ヘッダー -->
-        <header class="flex justify-between items-center shrink-0">
-            <div class="flex items-center gap-3 md:gap-4">
-                <div
-                    class="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg">
-                    <span class="text-white font-black text-sm md:text-lg">AF</span>
+        <header class="flex justify-between items-center shrink-0 glass px-5 py-3 rounded-3xl">
+            <div class="flex items-center gap-4">
+                <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span class="text-white font-black text-base">AF</span>
                 </div>
                 <div>
-                    <h1 class="text-base md:text-xl font-black tracking-tighter leading-none">AIRFUTURE <span
+                    <h1 class="text-lg font-black tracking-tighter leading-none">AIRFUTURE <span
                             class="text-indigo-600">管理パネル</span></h1>
-                    <p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5"
+                    <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-0.5"
                         id="storage-status">同期中...</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2 md:gap-4">
+
+            <nav class="hidden lg:flex items-center gap-6">
+                <a href="https://x.com/airfuture_ai" target="_blank"
+                    class="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 transition font-black text-[10px] uppercase tracking-wider">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                    X Account ↗
+                </a>
+                <a href="https://cron-job.org" target="_blank"
+                    class="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 transition font-black text-[10px] uppercase tracking-wider">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Cron Status ↗
+                </a>
+                <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit#gid=155635466"
+                    target="_blank"
+                    class="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 transition font-black text-[10px] uppercase tracking-wider">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Spreadsheet ↗
+                </a>
+            </nav>
+
+            <div class="flex items-center gap-3">
                 <div id="ops-status-container"
-                    class="px-2 md:px-3 py-1 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200">
-                    <span class="hidden md:inline">状態: </span><span id="ops-status">稼働中</span>
+                    class="px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    <span id="ops-status">稼働中</span>
                 </div>
                 <button onclick="logout()"
-                    class="p-1.5 md:p-2 hover:bg-white rounded-xl md:rounded-2xl transition text-slate-300 hover:text-rose-500">
-                    <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-width="2.5"
+                    class="p-2 hover:bg-slate-100 rounded-xl transition text-slate-300 hover:text-rose-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path
                             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
                         </path>
                     </svg>
@@ -133,237 +184,245 @@
             </div>
         </header>
 
-        <!-- ボディ -->
-        <div class="flex-1 flex flex-col gap-4 md:overflow-hidden">
+        <!-- セクション1: X自動投稿管理 -->
+        <section class="flex flex-col gap-2 shrink-0 md:h-[42%] overflow-hidden">
+            <div class="section-header">
+                <div class="section-dot"></div>
+                <h2 class="section-title">X自動投稿管理 (Auto-Post Management)</h2>
+            </div>
 
-            <!-- 上段: オペレーション -->
-            <div class="flex flex-col md:flex-row md:h-[28%] gap-4 shrink-0">
-                <!-- エンジン操作 -->
-                <div class="w-full md:w-[24%] flex flex-col gap-3">
-                    <div class="glass rounded-[28px] md:rounded-[32px] p-4 md:p-5 flex items-center justify-around">
-                        <div class="text-center">
-                            <p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mb-1">予約済み</p>
-                            <p id="ops-queued" class="text-3xl md:text-4xl font-black tracking-tighter">0</p>
+            <div class="flex-1 flex flex-col md:flex-row gap-3 min-h-0">
+                <!-- クイックアクション -->
+                <div class="w-full md:w-[22%] flex flex-col gap-2">
+                    <div class="glass rounded-3xl p-4 flex-1 flex flex-col justify-center gap-4">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="text-center bg-white/40 p-3 rounded-2xl">
+                                <p class="text-[7px] font-black text-slate-400 uppercase mb-0.5">予約中</p>
+                                <p id="ops-queued" class="text-3xl font-black text-slate-800 tracking-tighter">0</p>
+                            </div>
+                            <div class="text-center bg-white/40 p-3 rounded-2xl">
+                                <p class="text-[7px] font-black text-slate-400 uppercase mb-0.5">本日投稿</p>
+                                <p id="ops-today" class="text-3xl font-black text-indigo-600 tracking-tighter">0</p>
+                            </div>
                         </div>
-                        <div class="w-px h-10 md:h-12 bg-slate-200/50"></div>
-                        <div class="text-center">
-                            <p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase mb-1">完了</p>
-                            <p id="ops-today" class="text-3xl md:text-4xl font-black tracking-tighter">0</p>
-                        </div>
-                    </div>
-                    <div
-                        class="h-14 md:h-16 bg-slate-900 rounded-2xl md:rounded-[28px] flex items-center justify-between px-4 md:px-5 shadow-xl relative overflow-hidden group">
-                        <span
-                            class="text-[9px] md:text-[10px] font-black text-white/90 z-10 tracking-widest uppercase">Engine
-                            <a href="https://cron-job.org" target="_blank"
-                                class="ml-2 text-indigo-400 hover:text-white transition text-[7px] md:text-[8px]">Cron
-                                ↗</a>
-                        </span>
-                        <div class="flex gap-2 z-10">
-                            <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit#gid=155635466"
-                                target="_blank"
-                                class="bg-white/10 hover:bg-white/20 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black text-white transition-all flex items-center">台帳
-                                ↗</a>
-                            <button onclick="triggerCron('scheduled_post')"
-                                class="bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black text-white transition-all">手動実行</button>
+                        <div class="flex flex-col gap-2">
                             <button onclick="openGenerateModal()"
-                                class="bg-indigo-600 text-white px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black shadow-lg hover:shadow-indigo-500/50 transition-all active:scale-95">AI生成</button>
+                                class="w-full bg-indigo-600 text-white font-black py-3 rounded-2xl text-[10px] tracking-widest shadow-lg shadow-indigo-100 uppercase hover:bg-indigo-700 transition-all">AI一括生成</button>
+                            <button onclick="triggerCron('scheduled_post')"
+                                class="w-full bg-slate-100 text-slate-700 font-black py-3 rounded-2xl text-[10px] tracking-widest uppercase hover:bg-slate-200 transition-all">今すぐ投稿実行</button>
                         </div>
                     </div>
                 </div>
-                <!-- 配信予約詳細 -->
-                <div
-                    class="flex-1 glass rounded-3xl md:rounded-[40px] overflow-hidden flex flex-col min-h-[200px] md:min-h-0">
-                    <div class="px-6 md:px-8 py-3 bp-border-b bg-white/40 flex justify-between items-center">
-                        <span
-                            class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">配信予約キュー</span>
-                        <div class="flex items-center gap-2">
-                            <input type="checkbox" id="show-bots" onchange="tryFetch()"
-                                class="w-3 h-3 rounded text-indigo-600">
-                            <label for="show-bots"
-                                class="text-[8px] md:text-[9px] font-black text-slate-300 uppercase cursor-pointer">Bot表示</label>
+
+                <!-- 投稿予約リスト -->
+                <div class="flex-1 glass rounded-[36px] flex flex-col overflow-hidden">
+                    <div
+                        class="px-6 py-3 border-b border-slate-100/50 bg-white/20 flex justify-between items-center shrink-0">
+                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">配信予約キュー & 履歴</span>
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="show-bots" onchange="tryFetch()"
+                                    class="w-3 h-3 rounded text-indigo-600">
+                                <label for="show-bots"
+                                    class="text-[8px] font-black text-slate-300 uppercase cursor-pointer">Bot/Dev表示</label>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex-1 overflow-x-auto overflow-y-auto px-4">
-                        <table class="w-full text-left min-w-[500px] md:min-w-0">
-                            <thead class="bg-white/50 sticky top-0 z-10">
+                    <div class="flex-1 overflow-auto px-4 scrolling-content">
+                        <table class="w-full text-left">
+                            <thead class="sticky top-0 bg-white/80 backdrop-blur z-10">
                                 <tr
-                                    class="text-[8px] md:text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                                    <th class="py-2 md:py-3 px-2">日時</th>
-                                    <th class="py-2 md:py-3">ID</th>
-                                    <th class="py-2 md:py-3 font-medium">本文プレビュー</th>
-                                    <th class="py-2 md:py-3 text-right pr-2">Link / 操作</th>
+                                    class="text-[8px] text-slate-400 font-black uppercase tracking-widest border-b border-slate-100/50">
+                                    <th class="py-3 px-2">日時 / 状態</th>
+                                    <th class="py-3">ID</th>
+                                    <th class="py-3">プレビュー</th>
+                                    <th class="py-3 text-right pr-2">Link / 操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="queue-table-body" class="divide-y divide-slate-100/50 text-[9px] md:text-[10px]">
+                            <tbody id="queue-table-body" class="divide-y divide-slate-100/30 text-[9px] font-medium">
                             </tbody>
                             <tbody id="history-table-body"
-                                class="divide-y divide-slate-100/50 text-[9px] md:text-[10px] border-t-2 border-slate-100">
+                                class="divide-y divide-slate-100/30 text-[9px] font-medium border-t-2 border-slate-100">
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- 中段: LPパフォーマンス (見切れ防止のため高さを自動に) -->
+        <!-- セクション2: 流入経路計測管理 -->
+        <section class="flex flex-col gap-2 flex-1 md:min-h-0 overflow-hidden">
+            <div class="section-header">
+                <div class="section-dot bg-emerald-500"></div>
+                <h2 class="section-title">流入経路計測管理 (Analytics & Conversion)</h2>
+            </div>
+
+            <!-- LPパフォーマンスカード (水平) -->
             <div id="lp-cards-container"
-                class="flex gap-2 md:gap-4 shrink-0 overflow-x-auto pb-4 invisible scroll-hide min-h-[160px] md:min-h-[180px]">
+                class="flex gap-2 shrink-0 overflow-x-auto pb-1 scroll-hide min-h-[90px] md:h-[18%]">
                 <template id="lp-card-template">
                     <div
-                        class="flex-1 min-w-[150px] md:min-w-[210px] glass rounded-[32px] md:rounded-[40px] p-4 md:p-6 flex flex-col items-center justify-between relative overflow-hidden group hover:shadow-2xl transition-all border border-white/60 bg-white/30">
-                        <div class="flex flex-col items-center">
-                            <div
-                                class="text-3xl md:text-4xl mb-2 lp-icon transform group-hover:scale-110 transition-transform">
-                                🏠</div>
-                            <div
-                                class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] lp-name mb-2">
-                                MAIN</div>
-                            <div class="flex items-baseline gap-1 my-1">
-                                <span
-                                    class="text-2xl md:text-3xl font-black tracking-tighter text-slate-800 lp-pv">0</span>
-                                <span class="text-[8px] md:text-[9px] text-slate-400 font-black uppercase">pv</span>
+                        class="flex-1 min-w-[200px] glass rounded-[28px] p-3 flex items-center gap-4 relative overflow-hidden group hover:bg-white transition-all border border-white/60 bg-white/20">
+                        <div class="flex flex-col items-center justify-center shrink-0">
+                            <div class="text-2xl lp-icon mb-1">🏠</div>
+                            <div class="text-[7px] font-black text-slate-400 uppercase tracking-wider lp-name">MAIN
                             </div>
                         </div>
-                        <div
-                            class="w-full grid grid-cols-2 pt-3 border-t border-slate-200/50 mt-2 text-center font-bold">
-                            <div class="border-r border-slate-200/50">
-                                <p class="text-[7px] md:text-[8px] text-slate-400 uppercase mb-0.5">成約</p>
-                                <p class="text-[11px] md:text-[13px] text-slate-700 lp-cv-label">0</p>
+                        <div class="flex-1 border-l border-slate-100 pl-4 py-1 flex flex-col justify-between h-full">
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-xl font-black text-slate-800 lp-pv">0</span>
+                                <span class="text-[7px] font-black text-slate-400 uppercase">pv</span>
                             </div>
-                            <div>
-                                <p class="text-[7px] md:text-[8px] text-slate-400 uppercase mb-0.5">率</p>
-                                <p class="text-[11px] md:text-[13px] lp-cvr text-indigo-600">0%</p>
+                            <div class="flex gap-3 mt-1">
+                                <div>
+                                    <span class="text-[6px] text-slate-300 font-black mr-1 uppercase">成約</span>
+                                    <span class="text-[10px] font-bold text-slate-600 lp-cv-label">0</span>
+                                </div>
+                                <div>
+                                    <span class="text-[6px] text-slate-300 font-black mr-1 uppercase">率</span>
+                                    <span class="text-[10px] font-bold text-indigo-600 lp-cvr">0%</span>
+                                </div>
                             </div>
                         </div>
                         <a href="#" target="_blank" class="absolute inset-0 z-10 lp-link"></a>
-                        <div class="absolute bottom-0 left-0 w-full h-1.5 lp-accent opacity-80"></div>
+                        <div class="absolute bottom-0 left-0 w-full h-1 lp-accent opacity-60"></div>
                     </div>
                 </template>
             </div>
 
-            <!-- 下段: 詳細分析 -->
-            <div class="flex flex-col md:flex-row flex-1 gap-4 md:min-h-0 md:overflow-hidden">
-                <!-- KPIサイドバー -->
-                <div class="w-full md:w-[24%] flex flex-col gap-4">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="glass p-3 rounded-2xl md:rounded-[24px]">
-                            <p class="text-[7px] md:text-[8px] font-black text-slate-400 uppercase mb-1">クリック数</p>
-                            <p id="kpi-clicks" class="text-base md:text-lg font-black tracking-tighter">0</p>
+            <!-- 下段詳細エリア -->
+            <div class="flex-1 flex flex-col md:flex-row gap-3 min-h-0 overflow-hidden">
+                <!-- 左: メトリクス & トラフィック -->
+                <div class="w-full md:w-[22%] flex flex-col gap-3 overflow-hidden">
+                    <div class="grid grid-cols-2 gap-2 shrink-0 font-black tracking-tighter">
+                        <div class="glass p-3 rounded-2xl">
+                            <p class="text-[7px] text-slate-400 uppercase mb-0.5">総クリック</p>
+                            <p id="kpi-clicks" class="text-lg">0</p>
                         </div>
-                        <div class="bg-indigo-600/5 p-3 rounded-2xl md:rounded-[24px] border border-indigo-600/10">
-                            <p class="text-[7px] md:text-[8px] font-black text-indigo-400 uppercase mb-1">成約件数</p>
-                            <p id="kpi-cv" class="text-base md:text-lg font-black text-indigo-700 tracking-tighter">0
-                            </p>
+                        <div class="bg-indigo-600/5 p-3 rounded-2xl border border-indigo-600/10">
+                            <p class="text-[7px] text-indigo-400 uppercase mb-0.5">成約件数</p>
+                            <p id="kpi-cv" class="text-lg text-indigo-700">0</p>
                         </div>
-                        <div class="glass p-3 rounded-2xl md:rounded-[24px]">
-                            <p class="text-[7px] md:text-[8px] font-black text-slate-400 uppercase mb-1">平均CVR</p>
-                            <p id="kpi-cvr" class="text-base md:text-lg font-black text-indigo-600 tracking-tighter">0%
-                            </p>
+                        <div class="glass p-3 rounded-2xl">
+                            <p class="text-[7px] text-slate-400 uppercase mb-0.5">平均CVR</p>
+                            <p id="kpi-cvr" class="text-lg text-indigo-600">0%</p>
                         </div>
-                        <div class="bg-emerald-600/5 p-3 rounded-2xl md:rounded-[24px] border border-emerald-600/10">
-                            <p class="text-[7px] md:text-[8px] font-black text-emerald-400 uppercase mb-1">収益</p>
-                            <p id="kpi-revenue"
-                                class="text-base md:text-lg font-black text-emerald-700 tracking-tighter">¥0</p>
-                        </div>
-                        <div class="hidden">
-                            <p id="kpi-epc">0</p>
-                            <p id="kpi-aov">0</p>
+                        <div class="bg-emerald-600/5 p-3 rounded-2xl border border-emerald-600/10">
+                            <p class="text-[7px] text-emerald-400 uppercase mb-0.5">推定収益</p>
+                            <p id="kpi-revenue" class="text-lg text-emerald-700">¥0</p>
                         </div>
                     </div>
-                    <div
-                        class="glass rounded-3xl md:rounded-[36px] overflow-hidden flex flex-col max-h-[200px] md:max-h-none md:flex-1">
-                        <div class="px-5 md:px-6 py-2 border-b border-slate-100 bg-white/20">
-                            <span class="text-[8px] md:text-[9px] font-black text-slate-300 uppercase">トラフィック源</span>
+
+                    <!-- トラフィック表 -->
+                    <div class="flex-1 glass rounded-[28px] overflow-hidden flex flex-col min-h-0">
+                        <div class="px-4 py-2 border-b border-slate-100 bg-white/20 shrink-0">
+                            <span class="text-[8px] font-black text-slate-300 uppercase tracking-widest">トラフィック詳細</span>
                         </div>
-                        <div class="flex-1 overflow-y-auto px-2">
-                            <table class="w-full text-left text-[8px] md:text-[9px] font-bold">
-                                <tbody id="source-breakdown-body" class="divide-y divide-slate-100/30"></tbody>
+                        <div class="flex-1 overflow-auto scrolling-content">
+                            <table class="w-full text-left text-[8px] font-bold">
+                                <thead class="sticky top-0 bg-white/80 backdrop-blur z-10 border-b border-slate-100">
+                                    <tr class="text-slate-300 font-black">
+                                        <th class="py-2 px-3">ソース</th>
+                                        <th class="py-2 text-right">PV</th>
+                                        <th class="py-2 text-right">CV</th>
+                                        <th class="py-2 text-right px-3">収益</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="source-breakdown-body" class="divide-y divide-slate-100/20"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- 中央: 回遊パス -->
-                <div
-                    class="w-full md:w-[44%] glass rounded-[36px] md:rounded-[44px] flex flex-col overflow-hidden min-h-[300px] md:min-h-0">
+                <!-- 中央: 訪問者回遊 (スクロールなしで収める) -->
+                <div class="flex-1 glass rounded-[36px] flex flex-col overflow-hidden">
                     <div
-                        class="px-6 md:px-10 py-4 md:py-5 border-b border-slate-100 flex justify-between items-center bg-white/10">
+                        class="px-6 py-3 border-b border-slate-100 flex justify-between items-center bg-white/20 shrink-0">
                         <h3
-                            class="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 md:w-2 md:h-2 bg-indigo-600 rounded-full animate-pulse"></span>
-                            訪問者回遊
+                            class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                            訪問者回遊 (User Journey)
                         </h3>
-                        <select id="filter-period" onchange="tryFetch()"
-                            class="text-[9px] md:text-[10px] bg-slate-100 border-none rounded-xl md:rounded-2xl px-3 md:px-4 py-1 md:py-1.5 font-black outline-none cursor-pointer">
-                            <option value="all">全期間</option>
-                            <option value="today">本日</option>
-                        </select>
+                        <div class="flex gap-2">
+                            <select id="filter-period" onchange="tryFetch()"
+                                class="text-[9px] bg-slate-100 border-none rounded-xl px-3 py-1 font-black outline-none cursor-pointer">
+                                <option value="all">全期間反映</option>
+                                <option value="today">本日のみ</option>
+                            </select>
+                        </div>
                     </div>
-                    <div id="stats-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-2 md:space-y-3"></div>
+                    <div id="stats-container"
+                        class="flex-1 overflow-y-auto p-4 content-center space-y-2 scrolling-content"></div>
                     <div id="stats-empty"
-                        class="hidden h-full flex items-center justify-center p-8 text-center bg-white/10">
-                        <p
-                            class="text-[9px] md:text-[10px] font-black text-slate-200 uppercase tracking-widest leading-loose">
-                            データなし</p>
-                    </div>
+                        class="hidden flex-1 flex items-center justify-center text-slate-300 font-bold uppercase text-[10px]">
+                        No Data</div>
                 </div>
 
-                <!-- 右側: ログ -->
-                <div
-                    class="w-full md:w-[32%] glass rounded-[36px] md:rounded-[44px] flex flex-col overflow-hidden min-h-[200px] md:min-h-0">
-                    <div class="px-6 md:px-8 py-4 md:py-5 border-b border-slate-100 bg-white/20">
-                        <h3 class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">実行ログ
-                        </h3>
-                    </div>
-                    <div id="cron-logs-container"
-                        class="flex-1 overflow-y-auto p-4 md:p-6 font-mono text-[8px] md:text-[9px] space-y-1 md:space-y-1.5 text-slate-500">
+                <!-- 右: 実行ログ (アコーディオン風) -->
+                <div id="log-section" class="w-full md:w-[15%] transition-all duration-500 group relative">
+                    <button onclick="toggleLog()"
+                        class="w-full glass rounded-[28px] p-4 flex md:flex-col items-center justify-between md:justify-center gap-2 hover:bg-white transition-colors h-full">
+                        <div
+                            class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                stroke-width="2.5">
+                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">実行ログ<br
+                                class="hidden md:block"><span class="text-[7px]">CLICK TO VIEW</span></span>
+                    </button>
+
+                    <div id="log-modal"
+                        class="hidden absolute bottom-0 right-0 w-[320px] h-[400px] glass rounded-[36px] flex flex-col overflow-hidden shadow-2xl z-50 animate-fade-in">
+                        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white/60">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">System Logs</span>
+                            <button onclick="toggleLog()"
+                                class="text-slate-300 hover:text-rose-500 transition font-black text-lg">×</button>
+                        </div>
+                        <div id="cron-logs-container"
+                            class="flex-1 overflow-y-auto p-4 font-mono text-[9px] space-y-1.5 text-slate-500 bg-white/40 scrolling-content">
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
         <!-- フッター -->
         <footer
-            class="hidden md:flex h-6 justify-between items-center shrink-0 border-t border-slate-100 pt-2 text-[8px] font-black text-slate-200 uppercase tracking-[0.5em]">
-            <span>Secured By AirFuture Infra</span>
-            <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit#gid=155635466"
-                target="_blank"
-                class="text-indigo-300 hover:text-indigo-600 transition tracking-normal">操作台帳（Spreadsheet） ↗</a>
+            class="hidden md:flex h-5 justify-between items-center shrink-0 border-t border-slate-100 pt-1 text-[7px] font-black text-slate-300 uppercase tracking-[0.6em]">
+            <span>Secured By AirFuture Ultra-Infratrucure</span>
+            <span>Version 7.0 (Production-Ready)</span>
         </footer>
-        <!-- スマホ用簡易フッター -->
-        <div class="md:hidden text-center py-4 border-t border-slate-100 mt-4">
-            <a href="https://docs.google.com/spreadsheets/d/1XasT4Wf27uFByXN_f6o8F6N_A0zNf-6lY37z7x_oA8c/edit#gid=155635466"
-                target="_blank" class="text-[9px] font-black text-indigo-300">操作台帳を表示 ↗</a>
-        </div>
     </div>
 
     <!-- AI 生成モーダル -->
     <div id="gen-modal"
-        class="fixed inset-0 bg-slate-900/60 backdrop-blur-3xl z-[10000] hidden items-center justify-center p-4 text-center">
-        <div class="bg-white p-8 md:p-12 rounded-[40px] md:rounded-[60px] max-w-lg w-full shadow-2xl relative">
-            <h2 class="text-2xl md:text-4xl font-black mb-6 md:mb-10 tracking-tight">AI生成エンジン</h2>
-            <textarea id="gen-memo" placeholder="指示を入力（任意）"
-                class="w-full h-32 md:h-40 bg-slate-50 border-none rounded-2xl md:rounded-[40px] p-6 md:p-8 text-sm outline-none focus:ring-4 ring-indigo-500/10 transition-all font-medium mb-6 md:mb-8"></textarea>
-            <div class="flex items-center gap-4 md:gap-6 mb-8 md:mb-10">
-                <select id="gen-days"
-                    class="bg-slate-50 p-4 md:p-5 rounded-2xl md:rounded-3xl flex-1 font-black text-sm outline-none">
-                    <option value="1">1日分の記事</option>
-                    <option value="3">3日分の記事</option>
-                    <option value="7">7日分の記事</option>
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-3xl z-[10000] hidden items-center justify-center p-4">
+        <div class="glass p-8 md:p-10 rounded-[50px] max-w-lg w-full shadow-2xl relative bg-white/90">
+            <h2 class="text-2xl font-black mb-8 tracking-tight text-center">AI生成エンジン設定</h2>
+            <textarea id="gen-memo" placeholder="投稿のトピックや、AIへの特別な指示を入力（任意）"
+                class="w-full h-32 bg-slate-50 border-none rounded-3xl p-6 text-sm outline-none focus:ring-4 ring-indigo-500/10 transition-all font-medium mb-6"></textarea>
+            <div class="flex items-center gap-4 mb-8">
+                <select id="gen-days" class="bg-slate-50 p-4 rounded-2xl flex-1 font-black text-sm outline-none">
+                    <option value="1">1日分の記事を生成</option>
+                    <option value="3">3日分の記事を生成</option>
+                    <option value="7">7日分の記事を生成</option>
                 </select>
-                <div class="text-right shrink-0">
-                    <p class="text-[8px] md:text-[9px] font-black text-slate-300 uppercase">Status</p>
-                    <span class="text-[9px] md:text-[10px] font-black text-emerald-500 uppercase">Ready</span>
+                <div class="text-right">
+                    <p class="text-[8px] font-black text-slate-300 uppercase">Status</p>
+                    <span class="text-[10px] font-black text-emerald-500 uppercase">Ready</span>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-3 md:gap-5">
+            <div class="grid grid-cols-2 gap-4">
                 <button onclick="triggerGenerate(true)"
-                    class="bg-indigo-600 text-white font-black py-4 md:py-6 rounded-2xl md:rounded-3xl hover:bg-slate-900 transition-all text-sm">物語形式</button>
+                    class="bg-indigo-600 text-white font-black py-5 rounded-3xl hover:bg-slate-900 transition-all text-sm shadow-xl shadow-indigo-200">物語形式</button>
                 <button onclick="triggerGenerate(false)"
-                    class="bg-slate-100 text-slate-900 font-black py-4 md:py-6 rounded-2xl md:rounded-3xl hover:bg-slate-200 transition-all text-sm">リスト形式</button>
+                    class="bg-slate-200 text-slate-900 font-black py-5 rounded-3xl hover:bg-slate-300 transition-all text-sm">リスト形式</button>
             </div>
             <button onclick="closeGenerateModal()"
-                class="w-full text-[10px] md:text-[11px] font-black text-slate-200 uppercase tracking-[0.4em] mt-8 md:mt-10 hover:text-rose-500">閉じる</button>
+                class="w-full text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-8 hover:text-rose-500">閉じる
+                (Cancel)</button>
         </div>
     </div>
 
@@ -374,6 +433,7 @@
         function logout() { localStorage.removeItem('af_admin_pw'); location.reload(); }
         function openGenerateModal() { document.getElementById('gen-modal').classList.remove('hidden'); document.getElementById('gen-modal').classList.add('flex'); }
         function closeGenerateModal() { document.getElementById('gen-modal').classList.add('hidden'); document.getElementById('gen-modal').classList.remove('flex'); }
+        function toggleLog() { document.getElementById('log-modal').classList.toggle('hidden'); }
 
         async function tryFetch() {
             try {
@@ -414,7 +474,7 @@
             document.getElementById('ops-today').innerText = k.posted_today || 0;
             const active = (k.autopost_status || '').match(/ON|ACTIVE/);
             document.getElementById('ops-status').innerText = active ? '稼働中' : '停止中';
-            document.getElementById('ops-status-container').className = active ? 'px-2 md:px-3 py-1 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200' : 'px-2 md:px-3 py-1 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-widest bg-rose-100 text-rose-700 border border-rose-200';
+            document.getElementById('ops-status-container').className = active ? 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200' : 'px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-rose-100 text-rose-700 border border-rose-200';
 
             document.getElementById('kpi-clicks').innerText = (k.total_clicks || 0).toLocaleString();
             document.getElementById('kpi-cv').innerText = (k.total_cv || 0).toLocaleString();
@@ -422,36 +482,35 @@
             document.getElementById('kpi-cvr').innerText = (k.cvr || "0.0") + '%';
 
             document.getElementById('cron-logs-container').innerHTML = (data.cronLogs || []).map(l => `
-                <div class="flex gap-2 md:gap-3 hover:text-slate-900 transition-colors">
+                <div class="flex gap-2 hover:text-slate-900 border-b border-slate-100/30 pb-1">
                     <span class="text-indigo-400 font-black shrink-0">[${dayjs(l.timestamp).format('HH:mm')}]</span>
-                    <span class="font-medium truncate">${l.action || '実行'}${l.status ? ' (' + l.status + ')' : ''}</span>
+                    <span class="truncate">${l.action || '実行'}${l.status ? ' (' + l.status + ')' : ''}</span>
                 </div>`).join('') || '<p class="text-slate-300 italic text-center">待機中</p>';
 
             const posts = (data.posts || []).filter(p => !['posted', 'deleted'].includes(p.status)).sort((a, b) => dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf());
             document.getElementById('queue-table-body').innerHTML = posts.map(p => `
-                <tr class="group hover:bg-white/60 transition-all duration-300">
-                    <td class="py-3 px-2 text-slate-800"><span class="bg-indigo-50 text-indigo-400 px-1.5 py-0.5 rounded mr-2 font-black uppercase text-[7px]">${p.status}</span>${dayjs(p.scheduled_at).format('MM/DD HH:mm')}</td>
-                    <td class="py-3 font-black text-slate-500 tracking-tighter">#${p.id}</td>
-                    <td class="py-3 text-slate-400 line-clamp-1 italic text-[8px] md:text-[9px]">${p.draft || ''}</td>
-                    <td class="py-3 text-right pr-2">
+                <tr class="group hover:bg-white/60 transition-all">
+                    <td class="py-2.5 px-2 text-slate-800"><span class="bg-indigo-50 text-indigo-400 px-1.5 py-0.5 rounded mr-1.5 font-black uppercase text-[7px]">${p.status}</span>${dayjs(p.scheduled_at).format('MM/DD HH:mm')}</td>
+                    <td class="py-2.5 font-black text-slate-500 tracking-tighter">#${p.id}</td>
+                    <td class="py-2.5 text-slate-400 line-clamp-1 italic text-[9px]">${p.draft || ''}</td>
+                    <td class="py-2.5 text-right pr-2">
                         <div class="flex gap-2 justify-end opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
-                            <button onclick="postOp('${p.id}', 'force_post')" class="bg-indigo-600 text-white px-2 py-0.5 md:py-1 rounded text-[8px] font-black shadow-lg">投稿</button>
-                            <button onclick="postOp('${p.id}', 'delete')" class="bg-rose-50 text-rose-600 px-2 py-0.5 md:py-1 rounded text-[8px] font-black ml-1">削除</button>
+                            <button onclick="postOp('${p.id}', 'force_post')" class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[8px] font-black shadow-lg">投稿</button>
+                            <button onclick="postOp('${p.id}', 'delete')" class="bg-rose-50 text-rose-600 px-2 py-0.5 rounded text-[8px] font-black">削除</button>
                         </div>
                     </td>
-                </tr>`).join('') || '<tr><td colspan="4" class="p-8 text-center text-slate-200 font-black uppercase tracking-widest text-[9px]">予約なし</td></tr>';
+                </tr>`).join('') || '<tr><td colspan="4" class="p-4 text-center text-slate-200 font-black uppercase text-[9px]">予約なし</td></tr>';
 
             const recent = data.recent_posted || [];
             document.getElementById('history-table-body').innerHTML = recent.map(p => `
-                <tr class="bg-slate-50/30 group hover:bg-white transition-all duration-300">
-                    <td class="py-2 px-2 text-slate-400"><span class="bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded mr-2 font-black uppercase text-[7px]">POSTED</span>${dayjs(p.posted_at).format('MM/DD HH:mm')}</td>
+                <tr class="bg-slate-50/20 group hover:bg-white transition-all">
+                    <td class="py-2 px-2 text-slate-400"><span class="bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded mr-1.5 font-black uppercase text-[7px]">POSTED</span>${dayjs(p.posted_at).format('MM/DD HH:mm')}</td>
                     <td class="py-2 font-black text-slate-300 tracking-tighter">#${p.id}</td>
-                    <td class="py-2 text-slate-300 line-clamp-1 italic text-[8px] md:text-[9px]">${p.draft || ''}</td>
+                    <td class="py-2 text-slate-300 line-clamp-1 italic text-[9px]">${p.draft || ''}</td>
                     <td class="py-2 text-right pr-2">
-                        <a href="https://x.com/i/web/status/${p.tweet_id}" target="_blank" class="bg-slate-900 text-white px-3 py-1 rounded-lg text-[8px] font-black inline-flex items-center gap-1 hover:bg-indigo-600 transition-all">X ↗</a>
+                        <a href="https://x.com/i/web/status/${p.tweet_id}" target="_blank" class="bg-slate-900 text-white px-3 py-0.5 rounded-lg text-[8px] font-black inline-flex hover:bg-indigo-600 transition-all">X ↗</a>
                     </td>
                 </tr>`).join('');
-
 
             const sClicks = k.clicks_by_source || {};
             const sCV = k.cv_by_source || {};
@@ -485,10 +544,10 @@
             const pathContainer = document.getElementById('stats-container');
             const pathEmpty = document.getElementById('stats-empty');
             if (journeys.length > 0) {
-                pathContainer.innerHTML = journeys.map(j => `
-                    <div class="glass p-3 md:p-4 rounded-2xl md:rounded-[28px] flex justify-between items-center group bg-white/40 hover:bg-white transition-all shadow-sm border border-white/50">
-                        <p class="text-[9px] md:text-[11px] font-black text-slate-500 tracking-tight leading-loose">${j.path}</p>
-                        <div class="bg-indigo-600 text-white w-7 h-7 md:w-9 md:h-9 rounded-xl md:rounded-2xl flex items-center justify-center text-[10px] md:text-sm font-black shrink-0 ml-2">${j.count}</div>
+                pathContainer.innerHTML = journeys.slice(0, 5).map(j => `
+                    <div class="bg-white/60 p-3 rounded-2xl flex justify-between items-center group shadow-sm border border-white">
+                        <p class="text-[10px] font-black text-slate-500 tracking-tight">${j.path}</p>
+                        <div class="bg-indigo-600 text-white w-7 h-7 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 ml-2 shadow-lg shadow-indigo-100">${j.count}</div>
                     </div>`).join('');
                 pathEmpty.classList.add('hidden');
             } else { pathContainer.innerHTML = ''; pathEmpty.classList.remove('hidden'); }
@@ -497,19 +556,16 @@
             document.getElementById('source-breakdown-body').innerHTML = Array.from(allSrc).sort().map(s => {
                 const val = sClicks[s] || 0; const coVal = sCV[s]?.count || 0;
                 if (!val && !coVal) return '';
-                
-                // Map ID to Japanese Name and Icon for better visibility
                 const master = lps.find(l => l.id === s || (l.aliases && l.aliases.includes(s)));
                 const displayName = master ? `${master.icon} ${master.name}` : s;
-
                 return `<tr>
-                    <td class="py-2.5 px-3 md:px-4 text-slate-600 font-bold text-[10px] md:text-[11px]">${displayName}</td>
-                    <td class="text-right text-slate-800 font-black text-[11px] md:text-[12px]">${val.toLocaleString()}</td>
-                    <td class="text-right text-indigo-600 font-black text-[11px] md:text-[12px]">${coVal.toLocaleString()}</td>
-                    <td class="text-right px-3 md:px-6 font-black text-emerald-600 text-[11px] md:text-[12px]">¥${(sCV[s]?.revenue || 0).toLocaleString()}</td>
+                    <td class="py-2 px-3 text-slate-500 font-bold text-[9px]">${displayName}</td>
+                    <td class="text-right text-slate-800 font-black text-[10px]">${val.toLocaleString()}</td>
+                    <td class="text-right text-indigo-600 font-black text-[10px]">${coVal.toLocaleString()}</td>
+                    <td class="text-right px-3 font-black text-emerald-600 text-[10px]">¥${(sCV[s]?.revenue || 0).toLocaleString()}</td>
                 </tr>`;
             }).join('');
-            document.getElementById('storage-status').innerHTML = `<span class="opacity-50">SYNCED</span> | <span class="text-indigo-500 font-black">DEV: ${k.internal?.dev_clicks || 0}</span> | <span class="text-slate-400 font-black">BOT: ${k.internal?.bot_clicks || 0}</span>`;
+            document.getElementById('storage-status').innerHTML = `<span class="opacity-40">SYNCED</span> | <span class="text-indigo-400 font-black">DEV: ${k.internal?.dev_clicks || 0}</span> | <span class="text-slate-300 font-black">BOT: ${k.internal?.bot_clicks || 0}</span>`;
         }
         if (adminPW) tryFetch();
     </script>
