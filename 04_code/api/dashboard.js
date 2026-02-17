@@ -49,23 +49,31 @@ module.exports = async (req, res) => {
                     const row_pid = (row.get('post_id') || row.get('pid') || '').trim();
                     const action = row.get('action');
                     const row_lp = (row.get('lp_id') || 'default_lp').trim();
-                    const row_is_bot = row.get('is_bot') === 'BOT' || row.get('is_bot') === 'TRUE';
-                    const row_is_dev = row.get('is_dev') === '開発者' || row.get('is_dev') === 'TRUE';
+                    const row_is_bot = (row.get('is_bot') || '').toUpperCase().match(/BOT|TRUE|1/);
+                    const row_is_dev = (row.get('is_dev') || '').match(/開発者|TRUE|1/);
                     const row_ts_str = row.get('ts') || row.get('timestamp');
                     const row_revenue = parseFloat(row.get('revenue') || 0);
 
                     // Date filter
                     if (cutoffDate && row_ts_str && row_ts_str !== '記録日時') {
-                        const row_date = new Date(row_ts_str.replace(' ', 'T'));
-                        if (row_date < cutoffDate) return;
+                        try {
+                            const row_date = new Date(row_ts_str.replace(' ', 'T'));
+                            if (row_date < cutoffDate) return;
+                        } catch (e) { return; }
                     }
 
                     // Internal stats
                     if (row_is_bot && action === 'click') kpi.internal.bot_clicks++;
                     if (row_is_dev && action === 'click') kpi.internal.dev_clicks++;
 
-                    // Main Filter: Skip bots and devs
-                    if (row_is_bot || row_is_dev) return;
+                    // Main Filter: Skip bots and devs unless specifically requested (handled by UI)
+                    if (row_is_bot || row_is_dev) {
+                        if (!isHumanOnly) {
+                            // If NOT HumanOnly, we count them as well for debugging
+                        } else {
+                            return;
+                        }
+                    }
 
                     // LP Filter (Optional for specific views)
                     if (selectedLP !== 'all' && row_lp !== selectedLP) return;
