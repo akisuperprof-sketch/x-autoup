@@ -131,12 +131,36 @@ module.exports = async (req, res) => {
             cv_by_source: cvBySource
         });
 
-        // Visitor Journeys
+        // Visitor Journeys (Filter to match main KPI)
         const journeysByVisitor = {};
-        const sortedLogs = [...logRows].filter(r => {
-            const ts = r.get('ts');
-            return r.get('action') === 'click' && ts && ts !== '記録日時';
-        }).sort((a, b) => new Date(a.get('ts')) - new Date(b.get('ts')));
+        const filteredLogsForJourney = logRows.filter(row => {
+            const ts_str = row.get('ts') || row.get('timestamp');
+            if (!ts_str || ts_str === '記録日時' || row.get('action') !== 'click') return false;
+
+            const isBotStr = (row.get('is_bot') || '').toString().toUpperCase();
+            const isDevStr = (row.get('is_dev') || '').toString();
+            const row_is_bot = isBotStr.match(/BOT|TRUE|1/);
+            const row_is_dev = isDevStr.match(/開発者|管理者|TRUE|1/);
+
+            // Access user preference for filtering
+            if (isHumanOnly && (row_is_bot || row_is_dev)) return false;
+
+            // Date filter
+            if (cutoffDate) {
+                try {
+                    const row_date = new Date(ts_str.replace(' ', 'T'));
+                    if (row_date < cutoffDate) return false;
+                } catch (e) { return false; }
+            }
+
+            return true;
+        });
+
+        const sortedLogs = [...filteredLogsForJourney].sort((a, b) => {
+            const ta = (a.get('ts') || a.get('timestamp')).replace(' ', 'T');
+            const tb = (b.get('ts') || b.get('timestamp')).replace(' ', 'T');
+            return new Date(ta) - new Date(tb);
+        });
 
         sortedLogs.forEach(row => {
             const visitor = row.get('visitor_label');
