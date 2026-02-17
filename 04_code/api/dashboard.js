@@ -115,6 +115,22 @@ module.exports = async (req, res) => {
         const twentyFourHoursAgo = new Date(nowJST.getTime() - 24 * 60 * 60 * 1000);
         const todayStart = new Date(nowJST.getFullYear(), nowJST.getMonth(), nowJST.getDate());
 
+        // Visitor Journeys (Filter to match main KPI)
+        const journeyLogs = logRows.filter(row => {
+            const ts_str = row.get('ts') || row.get('timestamp');
+            if (!ts_str || ts_str === '記録日時' || row.get('action') !== 'click') return false;
+
+            const isBotStr = (row.get('is_bot') || '').toString().toUpperCase();
+            const isDevStr = (row.get('is_dev') || '').toString();
+            const row_is_bot = isBotStr.match(/BOT|TRUE|1/);
+            const row_is_dev = isDevStr.match(/開発者|管理者|TRUE|1/);
+
+            if (isHumanOnly && (row_is_bot || row_is_dev)) return false;
+            return true;
+        });
+
+        const pvTrend = generatePvTrend(journeyLogs, nowJST);
+
         Object.assign(kpi, {
             queued: posts.filter(p => p.status === 'scheduled' || p.status === 'draft_ai').length,
             posted_total: posts.filter(p => p.status === 'posted').length,
@@ -128,7 +144,8 @@ module.exports = async (req, res) => {
             aov,
             cvr,
             clicks_by_source: clicksBySource,
-            cv_by_source: cvBySource
+            cv_by_source: cvBySource,
+            pv_trend: pvTrend
         });
 
         // Visitor Journeys (Filter to match main KPI)
@@ -249,3 +266,30 @@ module.exports = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+/**
+ * 24時間の時系列PVデータを生成
+ */
+function generatePvTrend(logs, nowJST) {
+    const bins = {};
+    // 直近24時間の枠を作成
+    for (let i = 23; i >= 0; i--) {
+        const d = new Date(nowJST.getTime() - i * 60 * 60 * 1000);
+        const key = `${d.getHours()}:00`;
+        bins[key] = 0;
+    }
+
+    logs.forEach(row => {
+        try {
+            const ts = row.get('ts') || row.get('timestamp');
+            const d = new Date(ts.replace(' ', 'T'));
+            const diffHours = (nowJST - d) / (1000 * 60 * 60);
+            if (diffHours >= 0 && diffHours < 24) {
+                const key = `${d.getHours()}:00`;
+                if (bins[key] !== undefined) bins[key]++;
+            }
+        } catch (e) { }
+    });
+
+    return Object.entries(bins).map(([t, v]) => ({ t, v }));
+}
