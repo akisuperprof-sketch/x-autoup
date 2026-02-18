@@ -47,7 +47,8 @@ module.exports = async (req, res) => {
             targetStage: stage,
             productMentionAllowed: true,
             storyMode: storyMode,
-            memoContent: memo // User provided free text
+            memoContent: memo, // User provided free text
+            recentPosts: posts.slice(-15) // Prevent similarity/duplicates
         };
 
         const drafts = await contentGeneratorService.generateDrafts(context, { ...dictionaries, templates, patterns }, feedback);
