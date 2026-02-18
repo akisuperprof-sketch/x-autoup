@@ -187,54 +187,62 @@ class ContentGeneratorService {
     mockGenerateDrafts(context, reason = 'unknown') {
         logger.warn(`[ContentGenerator] Falling back to pre-defined drafts. Reason: ${reason}`);
 
-        // No markers in production text as per USER request
+        const memo = (context.memoContent || '').toLowerCase();
+
         const fallbacks = [
             {
-                draft: `空気を浄化するだけでなく、心まで整える。AirFuture miniは医療現場も認める高性能イオン技術を搭載。デスク周りを究極の聖域に変えませんか。✨ #AirFuture #空気清浄機 #デスクセットアップ`,
-                post_type: '解説型',
-                lp_section: 'Hero',
-                enemy: 'Pollution'
+                draft: `空気を浄化するだけでなく、心まで整える。AirFuture miniは医療現場も認める高性能イオン技術を搭載。デスク周りを究極の聖域に変えませんか。`,
+                post_type: '解説型', lp_section: 'Hero', enemy: 'Pollution', tags: ['#AirFuture', '#空気清浄機']
             },
             {
-                draft: `花粉症のあの辛さ、今年はもう終わりにしましょう。AirFuture miniは3000万個のイオンが鼻や目の敵を徹底ブロック。一瞬で呼吸が変わるのを実感してください。🌸 #AirFuture #花粉症対策 #鼻うがい`,
-                post_type: '誘導型',
-                lp_section: 'Pain',
-                enemy: 'Pollen'
+                draft: `花粉症のあの辛さ、今年はもう終わりにしましょう。AirFuture miniは3000万個のイオンが鼻や目の敵を徹底ブロック。一瞬で呼吸が変わるのを実感してください。`,
+                post_type: '誘導型', lp_section: 'Pain', enemy: 'Pollen', tags: ['#AirFuture', '#花粉症対策']
             },
             {
-                draft: `ペットのニオイ、家族は気づかないけれどお客様は気づいています。AirFutureの分解力は、ニオイの元を分子レベルで消し去ります。清潔で心地よい暮らしを。🐾 #AirFuture #ペットのいる暮らし #消臭`,
-                post_type: '解説型',
-                lp_section: 'Logic',
-                enemy: 'Pet'
+                draft: `ペットのニオイ、家族は気づかないけれどお客様は気づいています。AirFutureの分解力は、ニオイの元を分子レベルで消し去ります。清潔で心地よい暮らしを。`,
+                post_type: '解説型', lp_section: 'Logic', enemy: 'Pet', tags: ['#AirFuture', '#ペットのいる暮らし']
             },
             {
-                draft: `3Dプリンターのあの独特なニオイと有害ガス。作業者の健康を守るのは、AirFutureの高度な浄化技術です。クリエイティブな時間をより安全で快適な環境に。🖨️ #AirFuture #3Dプリンター`,
-                post_type: '証明型',
-                lp_section: 'Proof',
-                enemy: '3D Printer'
+                draft: `3Dプリンターのあの独特なニオイと有害ガス。作業者の健康を守るのは、AirFutureの高度な浄化技術です。クリエイティブな時間をより安全で快適な環境に。`,
+                post_type: '証明型', lp_section: 'Proof', enemy: '3D Printer', tags: ['#AirFuture', '#3Dプリンター']
             },
             {
-                draft: `「持ち運べる、自分だけの空気」。AirFuture miniなら、オフィスでもカフェでも、どこでも清潔な空間を。あなたのパフォーマンスを最大化するパートナー。💼 #AirFuture #ノマドワーク`,
-                post_type: '誘導型',
-                lp_section: 'Hero',
-                enemy: 'Pollution'
+                draft: `歯科医院やクリニックのクリーンなイメージ。AirFuture miniは目に見えない菌やウイルスまでケアし、患者様に安心の空間を提供します。プロが選ぶ信頼の技術。`,
+                post_type: '証明型', lp_section: 'Hero', enemy: 'Dental', tags: ['#AirFuture', '#感染対策']
             }
         ];
 
+        // Search for best matching fallback based on memo
+        let filteredFallbacks = fallbacks;
+        if (memo.includes('3d') || memo.includes('プリンター')) {
+            filteredFallbacks = [fallbacks[3], fallbacks[0], fallbacks[4]];
+        } else if (memo.includes('ペット') || memo.includes('犬') || memo.includes('猫')) {
+            filteredFallbacks = [fallbacks[2], fallbacks[0], fallbacks[1]];
+        } else if (memo.includes('花粉') || memo.includes('アレルギー')) {
+            filteredFallbacks = [fallbacks[1], fallbacks[0], fallbacks[2]];
+        } else if (memo.includes('歯科') || memo.includes('クリニック')) {
+            filteredFallbacks = [fallbacks[4], fallbacks[0], fallbacks[3]];
+        }
+
         const count = context.count || 3;
         const drafts = [];
+        const suffixes = ['✨', '💎', '🚀', '🌿', '💡', '🛡️'];
+
         for (let i = 0; i < count; i++) {
-            const fallback = fallbacks[i % fallbacks.length];
+            const fallback = filteredFallbacks[i % filteredFallbacks.length];
+            const randomSuffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+
             drafts.push({
                 ...fallback,
+                draft: `${fallback.draft}${randomSuffix}`,
                 lp_priority: i % 2 === 0 ? 'high' : 'low',
                 ab_version: i % 2 === 0 ? 'A' : 'B',
                 stage: context.targetStage || 'S1',
-                hashtags: ['#AirFuture'],
+                hashtags: fallback.tags || ['#AirFuture'],
                 media_type: 'none',
                 media_prompt: '',
                 cta_type: context.ctaType || 'profile',
-                ai_model: 'fallback-production',
+                ai_model: 'fallback-smart',
                 is_mock: true
             });
         }
