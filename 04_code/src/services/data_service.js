@@ -105,11 +105,13 @@ class DataService {
             return { skipped: true, reason: 'duplicate_hash' };
         }
 
-        // Similarity check (Jaccard)
-        for (const p of recentPosts) {
-            if (this._calculateSimilarity(text, p.draft) > 0.8) {
-                logger.warn(`Skipping similar content (similarity > 0.8)`);
-                return { skipped: true, reason: 'similarity_too_high' };
+        // Similarity check (Jaccard) - Skip for draft_ai to allow testing/mock buildup
+        if (post.status !== 'draft_ai') {
+            for (const p of recentPosts) {
+                if (this._calculateSimilarity(text, p.draft) > 0.8) {
+                    logger.warn(`Skipping similar content (similarity > 0.8)`);
+                    return { skipped: true, reason: 'similarity_too_high' };
+                }
             }
         }
 
