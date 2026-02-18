@@ -190,19 +190,21 @@ class ContentGeneratorService {
     mockGenerateDrafts(context, reason = 'unknown') {
         logger.warn(`[ContentGenerator] Falling back to pre-defined drafts. Reason: ${reason}`);
 
+        const timestamp = new Date().getTime();
+
         const fallbacks = [
             {
-                draft: "空気を選ぶという、贅沢を。AirFuture miniは医療用機材と同等の技術で、あなたの周りの空気を徹底的に浄化します。深呼吸の喜びを。✨ #AirFuture",
+                draft: `【AIキー要確認】空気を選ぶ贅沢を。AirFuture miniは医療用技術で浄化。(${timestamp}-1) ✨ #AirFuture`,
                 post_type: '解説型',
                 enemy: 'Pollution'
             },
             {
-                draft: "花粉やハウスダストでお困りの方へ。AirFuture miniはコンパクトながら、3000万個のイオンを放出して空間を清浄。持ち運べる安心を手に入れませんか？🌸 #AirFuture #花粉対策",
+                draft: `【AIキー要確認】花粉対策に。AirFuture miniは3000万個のイオンで清浄。(${timestamp}-2) 🌸 #AirFuture`,
                 post_type: '誘導型',
                 enemy: 'Pollen'
             },
             {
-                draft: "ペットと暮らす毎日に、さらなる清潔さを。AirFutureは気になるニオイの元を強力分解。大切な家族と一緒に、もっとクリーンな空気で過ごしましょう。🐾 #AirFuture #ペットのいる暮らし",
+                draft: `【AIキー要確認】ペットとの生活に清潔さを。ニオイの元を強力分解。(${timestamp}-3) 🐾 #AirFuture`,
                 post_type: '解説型',
                 enemy: 'Pet'
             }
@@ -222,7 +224,7 @@ class ContentGeneratorService {
                 media_type: 'none',
                 media_prompt: '',
                 cta_type: context.ctaType || 'profile',
-                ai_model: 'fallback'
+                ai_model: 'fallback-random'
             });
         }
         return drafts;
