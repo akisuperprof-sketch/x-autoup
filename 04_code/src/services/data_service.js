@@ -35,7 +35,12 @@ class DataService {
             }
         } else {
             try {
-                const data = await fs.readFile(POSTS_FILE, 'utf8');
+                // Ensure data directory exists in local mode
+                await fs.mkdir(DATA_DIR, { recursive: true }).catch(() => { });
+                const data = await fs.readFile(POSTS_FILE, 'utf8').catch(async () => {
+                    await fs.writeFile(POSTS_FILE, '[]');
+                    return '[]';
+                });
                 return JSON.parse(data);
             } catch (err) {
                 logger.error('Error reading posts JSON', err);
