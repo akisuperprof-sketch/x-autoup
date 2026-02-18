@@ -14,11 +14,16 @@ class DataService {
     }
 
     async init() {
-        this.useSheets = await googleSheetService.init();
-        if (this.useSheets) {
-            logger.info('DataService v2 initialized with Google Sheets storage.');
-        } else {
-            logger.info('DataService v2 initialized with Local JSON storage.');
+        try {
+            this.useSheets = await googleSheetService.init();
+            if (this.useSheets) {
+                logger.info('DataService v2 initialized with Google Sheets storage.');
+            } else {
+                logger.warn('DataService initialized in LOCAL mode (Sheets failed). Be aware of Vercel R/O filesystem.');
+            }
+        } catch (e) {
+            logger.error('DataService init failed hard', e);
+            this.useSheets = false;
         }
     }
 
@@ -38,7 +43,7 @@ class DataService {
                 // Ensure data directory exists in local mode
                 await fs.mkdir(DATA_DIR, { recursive: true }).catch(() => { });
                 const data = await fs.readFile(POSTS_FILE, 'utf8').catch(async () => {
-                    await fs.writeFile(POSTS_FILE, '[]');
+                    await fs.writeFile(POSTS_FILE, '[]').catch(() => { });
                     return '[]';
                 });
                 return JSON.parse(data);
@@ -76,24 +81,16 @@ class DataService {
             created_at: row.get('created_at'),
             updated_at: row.get('updated_at'),
             ai_model: row.get('ai_model'),
-            lp_priority: row.get('lp_priority') || 'low',
+            lp_priority: row.get('lp_priority'),
             post_type: row.get('post_type'),
             click_count: parseInt(row.get('click_count') || '0'),
             cv_count: parseInt(row.get('cv_count') || '0'),
             lp_section: row.get('lp_section'),
             ab_version: row.get('ab_version'),
             slot_id: row.get('slot_id'),
-            _row: row
+            revenue: parseFloat(row.get('revenue') || '0'),
+            cvr: parseFloat(row.get('cvr') || '0')
         };
-    }
-
-    _safeParseJson(val, fallback) {
-        if (!val) return fallback;
-        try {
-            return JSON.parse(val);
-        } catch (e) {
-            return fallback;
-        }
     }
 
     async addPost(post) {
@@ -123,7 +120,6 @@ class DataService {
         // --- PRIMARY KEY: Slot ID Guard ---
         let slot_id = post.slot_id;
         if (!slot_id && post.scheduled_at) {
-            // Generate standard slot_id: YYYYMMDD-HH (e.g., 20260216-08)
             const parts = post.scheduled_at.match(/(\d+).(\d+).(\d+)\s+(\d+)/);
             if (parts) {
                 const [, y, m, d, h] = parts;
@@ -135,11 +131,7 @@ class DataService {
             const alreadyExists = posts.some(p => {
                 const targetStatus = ['scheduled', 'posted', 'retry'].includes(p.status);
                 if (!targetStatus) return false;
-
-                // Priority 1: Match by explicit slot_id
                 if (p.slot_id === slot_id) return true;
-
-                // Priority 2: Fallback for old rows missing slot_id
                 if (!p.slot_id && p.scheduled_at) {
                     const pParts = p.scheduled_at.match(/(\d+).(\d+).(\d+)\s+(\d+)/);
                     if (pParts) {
@@ -174,14 +166,12 @@ class DataService {
             priority: post.priority || 0
         };
 
-        // Final URL replacement: Replace [post_id] with real ID
         if (newPost.draft && newPost.draft.includes('[post_id]')) {
             newPost.draft = newPost.draft.replace(/\[post_id\]/g, newPost.id);
         }
 
         if (this.useSheets) {
             try {
-                // Ensure slot_id column exists
                 const postsHeaders = [
                     'id', 'status', 'scheduled_at', 'draft', 'stage', 'enemy', 'season',
                     'hashtags', 'cta_type', 'media_type', 'media_prompt', 'dedupe_hash',
@@ -192,12 +182,6 @@ class DataService {
                     'ab_version', 'slot_id'
                 ];
                 await googleSheetService.ensureSheet('posts', postsHeaders);
-
-                const rows = await googleSheetService.getRows('posts');
-                const headers = rows.length > 0 ? rows[0]._worksheet.headerValues : [];
-                if (!headers.includes('id') && headers.includes('c')) {
-                    newPost.c = newPost.id;
-                }
                 await googleSheetService.addRow('posts', newPost);
                 return { success: true, id: newPost.id };
             } catch (error) {
@@ -208,7 +192,7 @@ class DataService {
             const allPosts = await this.getPosts();
             newPost.hashtags = post.hashtags || [];
             allPosts.push(newPost);
-            await fs.writeFile(POSTS_FILE, JSON.stringify(allPosts, null, 2));
+            await fs.writeFile(POSTS_FILE, JSON.stringify(allPosts, null, 2)).catch(() => { });
             return { success: true, id: newPost.id };
         }
     }
@@ -230,7 +214,7 @@ class DataService {
             const idx = posts.findIndex(p => p.id === id);
             if (idx !== -1) {
                 posts[idx] = { ...posts[idx], ...updates };
-                await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
+                await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2)).catch(() => { });
             }
         }
     }
@@ -241,7 +225,7 @@ class DataService {
         } else {
             const posts = await this.getPosts();
             const filtered = posts.filter(p => p.id !== id);
-            await fs.writeFile(POSTS_FILE, JSON.stringify(filtered, null, 2));
+            await fs.writeFile(POSTS_FILE, JSON.stringify(filtered, null, 2)).catch(() => { });
         }
     }
 
@@ -253,54 +237,24 @@ class DataService {
                 const current = parseInt(row.get('click_count') || '0');
                 row.set('click_count', (current + 1).toString());
                 await row.save();
-                return true;
-            }
-        } else {
-            const posts = await this.getPosts();
-            const idx = posts.findIndex(p => p.id === id);
-            if (idx !== -1) {
-                posts[idx].click_count = (posts[idx].click_count || 0) + 1;
-                await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
-                return true;
             }
         }
-        return false;
     }
 
-    async incrementCV(id) {
-        if (this.useSheets) {
-            const rows = await googleSheetService.getRows('posts');
-            const row = rows.find(r => (r.get('id') || r.get('c')) === id);
-            if (row) {
-                const current = parseInt(row.get('cv_count') || '0');
-                row.set('cv_count', (current + 1).toString());
-                await row.save();
-                return true;
-            }
-        } else {
-            const posts = await this.getPosts();
-            const idx = posts.findIndex(p => p.id === id);
-            if (idx !== -1) {
-                posts[idx].cv_count = (posts[idx].cv_count || 0) + 1;
-                await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
-                return true;
-            }
+    async logJourney(journeyData) {
+        if (!this.useSheets) return;
+        try {
+            const headers = ['timestamp', 'visitor_id', 'entry_page', 'referrer', 'clicks', 'conversions', 'path', 'duration', 'ab_version', 'post_id'];
+            await googleSheetService.ensureSheet('journeys', headers);
+            await googleSheetService.addRow('journeys', {
+                ...journeyData,
+                timestamp: new Date().toISOString(),
+                path: JSON.stringify(journeyData.path || [])
+            });
+        } catch (e) {
+            logger.error('Error logging journey', e);
         }
-        return false;
     }
-
-    // --- Logic Helpers ---
-
-    _calculateSimilarity(s1, s2) {
-        if (!s1 || !s2) return 0;
-        const set1 = new Set(s1.split(''));
-        const set2 = new Set(s2.split(''));
-        const intersection = new Set([...set1].filter(x => set2.has(x)));
-        const union = new Set([...set1, ...set2]);
-        return intersection.size / union.size;
-    }
-
-    // --- Dictionary & Config ---
 
     async getDictionaries() {
         if (!this.useSheets) return { enemies: [], tags: [], trends: [], ng_words: [], safe_phrases: [] };
@@ -359,29 +313,20 @@ class DataService {
         }
     }
 
-    // --- Cron & Lock Mechanism ---
-
     async acquireLock(key, ttlSeconds = 300) {
-        if (!this.useSheets) return true; // Local mode always succeeds
+        if (!this.useSheets) return true;
         try {
             const rows = await googleSheetService.getRows('locks');
             const row = rows.find(r => r.get('key') === key);
             const now = new Date();
-
             if (row) {
                 const expiresAt = new Date(row.get('expires_at'));
-                if (expiresAt.getTime() > now.getTime()) {
-                    logger.warn(`Lock [${key}] is currently held by another process. Expires at: ${expiresAt.toISOString()}`);
-                    return false;
-                }
-                // Lock expired, overtake
-                logger.info(`Overwriting expired lock [${key}]`);
+                if (expiresAt.getTime() > now.getTime()) return false;
                 row.set('locked_at', now.toISOString());
                 row.set('expires_at', new Date(now.getTime() + ttlSeconds * 1000).toISOString());
                 await row.save();
                 return true;
             } else {
-                // Create new lock
                 await googleSheetService.addRow('locks', {
                     key: key,
                     locked_at: now.toISOString(),
@@ -401,183 +346,43 @@ class DataService {
             const rows = await googleSheetService.getRows('locks');
             const row = rows.find(r => r.get('key') === key);
             if (row) {
-                row.set('expires_at', new Date(0).toISOString()); // Expire immediately
+                row.set('expires_at', new Date(0).toISOString());
                 await row.save();
             }
-        } catch (e) {
-            logger.error('Error releasing lock', e);
-        }
+        } catch (e) { }
     }
 
-    _getJSTTimestamp() {
-        const now = new Date();
-        const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-        return jstDate.toISOString().replace('T', ' ').substring(0, 19);
-    }
-
-    isBot(ua, ref) {
-        if (!ua) return true;
-        const botKeywords = ['bot', 'crawl', 'spider', 'headless', 'preview', 'lighthouse', 'curl', 'wget', 'python-requests', 'vercel'];
-        const uaLower = ua.toLowerCase();
-        if (botKeywords.some(kw => uaLower.includes(kw))) return true;
-
-        // Browser checks
-        if (!ref && (uaLower.includes('curl') || uaLower.includes('wget') || uaLower.includes('python'))) return true;
-
-        return false;
-    }
-
-    getIpHash(ip) {
-        if (!ip) return '';
-        return crypto.createHash('md5').update(ip).digest('hex').substring(0, 12);
-    }
-
-    async getVisitorInfo(ip_hash, ip, ua, ref) {
-        if (!this.useSheets) return { label: 'LocalVisitor', is_dev: true, is_bot: false };
-
-        const isAdmin = ref && ref.includes('admin.html');
-        const isBot = this.isBot(ua, ref);
-
-        try {
-            await googleSheetService.ensureSheet('visitors', ['ip_hash', 'visitor_index', 'label', 'first_seen', 'last_ts', 'is_dev', 'ua']);
-            const rows = await googleSheetService.getRows('visitors');
-
-            // 重要: IPハッシュが一致する既存の訪問者を検索
-            let row = rows.find(r => r.get('ip_hash') === ip_hash);
-
-            if (row) {
-                // 既存の訪問者の場合、タイムスタンプのみ更新して同じラベルを返す
-                row.set('last_ts', this._getJSTTimestamp());
-                await row.save();
-                return {
-                    label: row.get('label'),
-                    is_dev: row.get('is_dev') === '開発者' || row.get('is_dev') === 'TRUE' || isAdmin,
-                    is_bot: isBot
-                };
-            } else {
-                // 新規訪問者の場合、新しいインデックスを割り当て
-                const nextIndex = rows.length + 1;
-                const label = `訪問者 #${nextIndex}`;
-
-                await googleSheetService.addRow('visitors', {
-                    ip_hash,
-                    visitor_index: nextIndex,
-                    label: label,
-                    first_seen: this._getJSTTimestamp(),
-                    last_ts: this._getJSTTimestamp(),
-                    is_dev: isAdmin ? '開発者' : '一般',
-                    ua: ua || ''
-                });
-                return { label: label, is_dev: isAdmin, is_bot: isBot };
-            }
-        } catch (e) {
-            logger.warn('Error management visitors sheet', e.message);
-            return { label: 'Unknown', is_dev: isAdmin, is_bot: isBot };
-        }
-    }
-
-    getLpName(lp_id) {
-        const lpMap = {
-            'mini_lp': 'メイン',
-            'mini_main': 'メイン',
-            'hayfever': '花粉',
-            'pet': 'ペット',
-            'dental': '歯科',
-            '3dprinter': '3D',
-            'hub': 'ハブ',
-            'default_lp': '未指定'
-        };
-        return lpMap[lp_id] || lp_id;
-    }
-
-    async ensureLogHeaderExplanation() {
+    async logCron(jobName, status, duration = 0, error = '') {
         if (!this.useSheets) return;
         try {
-            const sheet = this.doc ? this.doc.sheetsByTitle['logs'] : await googleSheetService.ensureSheet('logs', ['ts', 'post_id', 'action', 'pid', 'visitor_label', 'lp_name', 'lp_id', 'dest_url', 'ref', 'is_bot', 'is_dev', 'revenue', 'order_id', 'ip_hash', 'ua', 'data']);
-            const rows = await sheet.getRows({ offset: 0, limit: 1 });
-
-            // 2行目（rows[0]）が説明行かチェック
-            if (rows.length === 0 || rows[0].get('ts') !== '記録日時') {
-                logger.info('Adding header explanation to logs sheet...');
-                const explanation = {
-                    ts: '記録日時',
-                    post_id: '投稿ID',
-                    action: '操作種別(click/cv等)',
-                    pid: 'パーツID',
-                    visitor_label: '訪問者番号',
-                    lp_name: 'LP名(日本名)',
-                    lp_id: 'LP ID',
-                    dest_url: '遷移先URL',
-                    ref: 'リファラ',
-                    is_bot: 'Bot判定',
-                    is_dev: 'Dev判定',
-                    revenue: '収益額',
-                    order_id: '注文ID',
-                    ip_hash: '識別ハッシュ',
-                    ua: 'ブラウザ情報',
-                    data: 'その他詳細JSON'
-                };
-                // insertRowは困難なのでaddRowしてソート...はできない。
-                // 既存のaddRowを使う。初回のみの想定
-                if (rows.length === 0) {
-                    await sheet.addRow(explanation);
-                }
-            }
+            const headers = ['timestamp', 'job_name', 'status', 'duration_ms', 'error_log'];
+            await googleSheetService.ensureSheet('cron_logs', headers);
+            await googleSheetService.addRow('cron_logs', {
+                timestamp: new Date().toISOString(),
+                job_name: jobName,
+                status: status,
+                duration_ms: duration,
+                error_log: error
+            });
         } catch (e) {
-            logger.warn('Header explanation check failed', e.message);
+            logger.error('Error logging cron', e);
         }
     }
 
-    async addCronLog(log) {
-        const entry = {
-            run_id: Date.now().toString(),
-            timestamp: this._getJSTTimestamp(),
-            ...log
-        };
-        if (this.useSheets) {
-            await googleSheetService.addRow('cron_logs', entry);
-        }
-        logger.info(`Cron Log [${log.action}]: ${log.status} - ${log.processed_count || 0} processed`);
+    _calculateSimilarity(s1, s2) {
+        if (!s1 || !s2) return 0;
+        const set1 = new Set(s1.split(''));
+        const set2 = new Set(s2.split(''));
+        const intersection = new Set([...set1].filter(x => set2.has(x)));
+        const union = new Set([...set1, ...set2]);
+        return intersection.size / union.size;
     }
 
-    async addEventLog(action, data = {}) {
-        if (!this.useSheets) {
-            logger.info(`Event Log [${action} (Local)]: pid=${data.pid} val=${data.revenue || 0}`);
-            return;
-        }
-
-        const pid = data.pid || data.post_id || '';
-        const ipHash = data.ip_hash || this.getIpHash(data.ip || '');
-        const vInfo = await this.getVisitorInfo(ipHash, data.ip, data.ua, data.ref);
-
-        const entry = {
-            ts: this._getJSTTimestamp(),
-            post_id: pid,
-            action,
-            pid: pid,
-            visitor_label: vInfo.label,
-            lp_name: this.getLpName(data.lp_id || 'default_lp'),
-            lp_id: data.lp_id || 'default_lp',
-            dest_url: data.dest_url || '',
-            ref: data.ref || '',
-            ua: data.ua || '',
-            ip_hash: ipHash,
-            is_bot: (data.is_bot || vInfo.is_bot) ? 'BOT' : '人間',
-            is_dev: vInfo.is_dev ? '開発者' : '一般',
-            revenue: parseFloat(data.revenue || 0),
-            order_id: data.order_id || '',
-            data: data.data ? JSON.stringify(data.data) : ''
-        };
-
+    _safeParseJson(str, fallback) {
         try {
-            await googleSheetService.ensureSheet('logs', Object.keys(entry));
-            await this.ensureLogHeaderExplanation();
-            await googleSheetService.addRow('logs', entry);
-            logger.info(`Event Log [${action}]: ${entry.visitor_label} (${entry.lp_name})`);
+            return str ? JSON.parse(str) : fallback;
         } catch (e) {
-            logger.error(`[CRITICAL] Error adding event log to Sheet: ${e.message}`);
-            // Fallback for debugging: store the last error in the service
-            this.lastError = `${new Date().toLocaleTimeString()}: ${e.message}`;
+            return fallback;
         }
     }
 }
