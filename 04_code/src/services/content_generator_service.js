@@ -68,8 +68,8 @@ class ContentGeneratorService {
             return drafts;
         } catch (error) {
             logger.error('Error generating content with Gemini', error);
-            // Fallback to high-quality mock data for testing flow even if API is down
-            return this.mockGenerateDrafts(context, error.message);
+            // Re-throw the error to let the API caller see the real issue during debug
+            throw error;
         }
     }
 
