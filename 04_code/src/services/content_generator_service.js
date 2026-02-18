@@ -68,6 +68,10 @@ class ContentGeneratorService {
             return drafts;
         } catch (error) {
             logger.error('Error generating content with Gemini', error);
+            // Critical error check (e.g. 403 Forbidden / Leaked Key)
+            if (error.message.includes('403') || error.message.includes('API key')) {
+                throw new Error(`Gemini API Error: ${error.message}`);
+            }
             return this.mockGenerateDrafts(context, error.message);
         }
     }
