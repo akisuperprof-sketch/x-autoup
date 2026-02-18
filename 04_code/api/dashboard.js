@@ -26,16 +26,23 @@ module.exports = async (req, res) => {
         let totalRevenue = 0;
 
         const now = new Date();
-        const jstOffset = 9 * 60 * 60 * 1000;
-        const nowJST = new Date(now.getTime() + jstOffset);
+        const JST_OFFSET = 9 * 60 * 60 * 1000;
+        const getJstDateStr = (d) => new Date(d.getTime() + JST_OFFSET).toISOString().split('T')[0];
+        const todayStr = getJstDateStr(now);
+
+        // Define JST boundaries
+        const getJstMidnight = (d) => {
+            const jst = new Date(d.getTime() + JST_OFFSET);
+            return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate()) - JST_OFFSET);
+        };
 
         let cutoffDate = null;
         if (period === 'today') {
-            cutoffDate = new Date(nowJST.getFullYear(), nowJST.getMonth(), nowJST.getDate());
+            cutoffDate = getJstMidnight(now);
         } else if (period === '7d') {
-            cutoffDate = new Date(nowJST.getTime() - 7 * 24 * 60 * 60 * 1000);
+            cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         } else if (period === '30d') {
-            cutoffDate = new Date(nowJST.getTime() - 30 * 24 * 60 * 60 * 1000);
+            cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         }
 
         const kpi = { internal: { bot_clicks: 0, dev_clicks: 0 } };
@@ -62,7 +69,8 @@ module.exports = async (req, res) => {
                     // Date filter
                     if (cutoffDate) {
                         try {
-                            const row_date = new Date(ts_str.replace(' ', 'T'));
+                            // Treat ts_str from sheet as JST
+                            const row_date = new Date(ts_str.replace(' ', 'T') + '+09:00');
                             if (row_date < cutoffDate) continue;
                         } catch (e) { continue; }
                     }
@@ -112,8 +120,7 @@ module.exports = async (req, res) => {
         const aov = totalCV > 0 ? (totalRevenue / totalCV).toFixed(1) : 0;
         const cvr = totalClicks > 0 ? ((totalCV / totalClicks) * 100).toFixed(1) : 0;
 
-        const twentyFourHoursAgo = new Date(nowJST.getTime() - 24 * 60 * 60 * 1000);
-        const todayStart = new Date(nowJST.getFullYear(), nowJST.getMonth(), nowJST.getDate());
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
         // Visitor Journeys (Filter to match main KPI)
         const journeyLogs = logRows.filter(row => {
@@ -132,7 +139,7 @@ module.exports = async (req, res) => {
         Object.assign(kpi, {
             queued: posts.filter(p => p.status === 'scheduled' || p.status === 'draft_ai').length,
             posted_total: posts.filter(p => p.status === 'posted').length,
-            posted_today: posts.filter(p => p.status === 'posted' && p.posted_at && new Date(p.posted_at) >= todayStart).length,
+            posted_today: posts.filter(p => p.status === 'posted' && p.posted_at && getJstDateStr(new Date(p.posted_at)) === todayStr).length,
             failed_24h: posts.filter(p => (p.status === 'failed' || p.last_error) && p.updated_at && new Date(p.updated_at) >= twentyFourHoursAgo).length,
             autopost_status: 'ACTIVE',
             total_clicks: totalClicks,
@@ -143,7 +150,7 @@ module.exports = async (req, res) => {
             cvr,
             clicks_by_source: clicksBySource,
             cv_by_source: cvBySource,
-            pv_trend: generatePvTrend(journeyLogs, posts, nowJST)
+            pv_trend: generatePvTrend(journeyLogs, posts, now)
         });
 
         // Visitor Journeys (Filter to match main KPI)
@@ -163,7 +170,7 @@ module.exports = async (req, res) => {
             // Date filter
             if (cutoffDate) {
                 try {
-                    const row_date = new Date(ts_str.replace(' ', 'T'));
+                    const row_date = new Date(ts_str.replace(' ', 'T') + '+09:00');
                     if (row_date < cutoffDate) return false;
                 } catch (e) { return false; }
             }
@@ -172,8 +179,8 @@ module.exports = async (req, res) => {
         });
 
         const sortedLogs = [...filteredLogsForJourney].sort((a, b) => {
-            const ta = (a.get('ts') || a.get('timestamp')).replace(' ', 'T');
-            const tb = (b.get('ts') || b.get('timestamp')).replace(' ', 'T');
+            const ta = (a.get('ts') || a.get('timestamp')).replace(' ', 'T') + '+09:00';
+            const tb = (b.get('ts') || b.get('timestamp')).replace(' ', 'T') + '+09:00';
             return new Date(ta) - new Date(tb);
         });
 
@@ -268,12 +275,19 @@ module.exports = async (req, res) => {
 /**
  * 直近7日間の日次PVおよび投稿数データを生成
  */
-function generatePvTrend(logs, posts, nowJST) {
+function generatePvTrend(logs, posts, now) {
+    const JST_OFFSET = 9 * 60 * 60 * 1000;
+    const getJstDate = (d) => new Date(d.getTime() + JST_OFFSET);
+
     const bins = {};
+    const nowJST = getJstDate(now);
+
     // 直近7日間の枠を作成 (今日を含む)
     for (let i = 6; i >= 0; i--) {
         const d = new Date(nowJST.getTime() - i * 24 * 60 * 60 * 1000);
-        const key = `${d.getMonth() + 1}/${d.getDate()}`;
+        const m = d.getUTCMonth() + 1; // getUTC because nowJST is offset shifted
+        const dt = d.getUTCDate();
+        const key = `${m}/${dt}`;
         bins[key] = { pv: 0, posts: 0 };
     }
 
@@ -281,8 +295,8 @@ function generatePvTrend(logs, posts, nowJST) {
         try {
             const ts = row.get('ts') || row.get('timestamp');
             if (!ts) return;
-            const d = new Date(ts.replace(' ', 'T'));
-            const key = `${d.getMonth() + 1}/${d.getDate()}`;
+            const d = getJstDate(new Date(ts.replace(' ', 'T')));
+            const key = `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
             if (bins[key] !== undefined) bins[key].pv++;
         } catch (e) { }
     });
@@ -290,8 +304,8 @@ function generatePvTrend(logs, posts, nowJST) {
     posts.forEach(p => {
         if (p.status === 'posted' && p.posted_at) {
             try {
-                const d = new Date(p.posted_at);
-                const key = `${d.getMonth() + 1}/${d.getDate()}`;
+                const d = getJstDate(new Date(p.posted_at));
+                const key = `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
                 if (bins[key] !== undefined) bins[key].posts++;
             } catch (e) { }
         }
