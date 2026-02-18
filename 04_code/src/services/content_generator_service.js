@@ -231,10 +231,11 @@ class ContentGeneratorService {
         for (let i = 0; i < count; i++) {
             const fallback = filteredFallbacks[i % filteredFallbacks.length];
             const randomSuffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+            const salt = Math.random().toString(36).substring(7);
 
             drafts.push({
                 ...fallback,
-                draft: `${fallback.draft}${randomSuffix}`,
+                draft: `${fallback.draft}${randomSuffix} [id:${salt}]`,
                 lp_priority: i % 2 === 0 ? 'high' : 'low',
                 ab_version: i % 2 === 0 ? 'A' : 'B',
                 stage: context.targetStage || 'S1',
