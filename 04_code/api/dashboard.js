@@ -1,5 +1,5 @@
 const dataService = require('../src/services/data_service');
-const googleSheetService = require('../src/services/google_sheet_service');
+const googleSheetService = require('../src/services/google_sheet_service'); // v7.7
 const env = require('../src/config/env');
 
 module.exports = async (req, res) => {
