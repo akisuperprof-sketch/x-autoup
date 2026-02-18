@@ -100,14 +100,13 @@ class DataService {
 
         // Deduplication Logic
         const posts = await this.getPosts();
-        const recentPosts = posts.slice(-100); // Check last 100 for safety
+        const recentPosts = posts.slice(-100);
 
         if (recentPosts.some(p => p.dedupe_hash === dedupe_hash)) {
             logger.warn(`Skipping duplicate content (hash match): ${text.substring(0, 20)}...`);
             return { skipped: true, reason: 'duplicate_hash' };
         }
 
-        // Similarity check (Jaccard) - Skip for draft_ai to allow testing/mock buildup
         if (post.status !== 'draft_ai') {
             for (const p of recentPosts) {
                 if (this._calculateSimilarity(text, p.draft) > 0.8) {
@@ -117,7 +116,6 @@ class DataService {
             }
         }
 
-        // --- PRIMARY KEY: Slot ID Guard ---
         let slot_id = post.slot_id;
         if (!slot_id && post.scheduled_at) {
             const parts = post.scheduled_at.match(/(\d+).(\d+).(\d+)\s+(\d+)/);
@@ -367,6 +365,20 @@ class DataService {
         } catch (e) {
             logger.error('Error logging cron', e);
         }
+    }
+
+    getLpName(lp_id) {
+        const lpMap = {
+            'mini_lp': 'メイン',
+            'mini_main': 'メイン',
+            'hayfever': '花粉',
+            'pet': 'ペット',
+            'dental': '歯科',
+            '3dprinter': '3D',
+            'hub': 'ハブ',
+            'default_lp': '未指定'
+        };
+        return lpMap[lp_id] || lp_id;
     }
 
     _calculateSimilarity(s1, s2) {
