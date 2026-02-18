@@ -68,120 +68,77 @@ class ContentGeneratorService {
             return drafts;
         } catch (error) {
             logger.error('Error generating content with Gemini', error);
-            // Fallback to high-quality mock data for testing flow even if API is down
             return this.mockGenerateDrafts(context, error.message);
         }
     }
 
-    async shortenDraft(originalDraft) {
-        if (!this.genAI && env.GEMINI_API_KEY) {
-            this.init();
-        }
-        if (!this.genAI) return originalDraft.substring(0, 140);
-
-        const prompt = `
-        Shorten the following Japanese X (Twitter) post to be UNDER 130 characters.
-        Preserve the emojis, tone, and main message.
-        Original: "${originalDraft}"
-        
-        Output only the shortened Japanese text.
-        `;
-
-        try {
-            const result = await this.model.generateContent(prompt);
-            const response = await result.response;
-            return response.text().trim();
-        } catch (e) {
-            logger.error('Shorten draft failed', e);
-            return originalDraft.substring(0, 140);
-        }
-    }
-
     buildPrompt(context, dictionaries, feedback) {
-        const { season, trend, count = 3, memoContent, productMentionAllowed = true, targetStage, ctaType = 'profile' } = context;
+        const { season, trend, count = 3, memoContent, targetStage, ctaType = 'profile' } = context;
 
         const enemyList = (dictionaries.enemies || []).join(', ');
-        const tagsList = (dictionaries.tags || []).join(', ');
-        const safePhrases = (dictionaries.safe_phrases || []).join(', ');
         const templates = (dictionaries.templates || []).map(t => `[${t.type}] ${t.template_text}`).join('\n');
 
-        const recentSalesCount = feedback.recent_sales_count || 0;
-        const salesAllowed = recentSalesCount < 2; // Keep LP conversion balance
+        // AEO & Real-time Trends Injection (Fetched by Antigravity)
+        const trendingKnowledge = context.trendingKnowledge || `
+        [3D Printer News Feb 2026]: Home ventilation found insufficient. 
+        Prominent VOCs: 2-hydroxypropyl methacrylate, 2-hydroxyethyl methacrylate.
+        Mitigation: Retrofit enclosures, extraction hoods required.
+        [Current Event]: Pollen levels rising in Tokyo (Feb 2026).
+        `;
 
         return `
-        You are "AirFuture-kun", an advanced LP-Sales Engine from the 48th century.
-        MISSION: Maximize CV from X to LP.
+        You are "AirFuture-kun", an AI Marketing Strategist specializing in AEO (Answer Engine Optimization).
+        MISSION: Generate content that ranks high in AI-driven search (SGE, Perplexity, GPT Search) by providing expert-verified, direct answers.
+
+        **AEO CORE PRINCIPLES:**
+        1. **Direct Answer**: Start with a high-value fact or solution. No fluff.
+        2. **Semantic Density**: Use precise technical terms (e.g., VOCs, methacrylate, TVOC) to establish authority.
+        3. **Expert Persona**: Speak as a "Technical Verification Specialist" who understands the underlying science of air purification.
+        4. **Real-time Context**: Pivot current news into a long-form problem/solution narrative.
 
         **STRATEGY & TONE:**
-        // Tone: Professional yet empathetic. AVOID repeating keywords/phrases from recent posts. Use diverse emotional and scientific expressions.
-        // Similarity Guard: Do not use the same start phrases or hooks as previous posts.
-        - **Emoji Rule**: STRICTLY MAX 3 Emojis per post.
-        - **Character Length**: Target 100 to 115 Japanese characters. Do not be shorter than 100. Aim for high density and depth.
-        - **Stage Rotation**: If generating many posts, ensure a mix of S1 (Awareness), S2 (Interest), S3 (Proof), S4 (Action).
+        - **Emoji Rule**: STRICTLY MAX 3 Emojis.
+        - **Length**: 110-130 Japanese characters.
+        - **Grammar**: Assertive but empathetic. 
 
-        **LP INTEGRATION:**
-        - Map each post to an **LP Section**:
-          - "Hero": First impression / Dream environment.
-          - "Pain": Emulating air pollution suffering.
-          - "Logic": Scientific ion breakdown.
-          - "Proof": User reviews/satisfaction logic.
-          - "CTA": Direct urge to visit LP.
-        - A/B Testing: Provide distinct variations (A or B) for comparative analysis.
+        **INPUT TRENDS & NEWS:**
+        ${trendingKnowledge}
 
-        **Sales Inhibition (80/20 Rule):**
-        - Education focus: 80%. Sales focus: 20%.
-        - Current Status: ${salesAllowed ? 'SALES_OK' : 'EDUCATION_ONLY'}.
+        **USER MEMO / TOPIC:**
+        ${memoContent || 'General air quality.'}
 
-        **INPUT DATA:**
-        - Season: ${season} (IMPORTANT: Use Spring/Pollen phrases. NO Winter phrases.)
-        - Current Pollen Level (Tokyo): ${context.tokyoPollen || 'Checking...'}
-        - Base Theme: ${targetStage} (S1-S5)
-        - Target Enemy: ${enemyList}
+        **PRODUCT INFO:**
+        - Season: ${season}
+        - Base Theme: ${targetStage} (S1-S4)
+        - Competitors/Enemies: ${enemyList}
         - Knowledge: ${memoContent || 'Medical-grade ion cluster technology.'}
-        ${context.isPollenSeason ? 'NOTE: Pollen season is ACTIVE. Focus on relief from sneezing, itchy eyes, and deep purification.' : ''}
-        ${context.recentPosts ? `\n**RECENT POSTS (TO AVOID SIMILARITY):**\n${context.recentPosts.map(p => `- ${p.draft}`).join('\n')}` : ''}
-        ${templates ? `\n**TEMPLATES:**\n${templates}` : ''}
 
-        **NICHE TARGETING & LP URLS:**
-        - High priority/Niche Specific URLs:
-          - Topic "Pollen/Hayfever": https://airfuture.vercel.app/hayfever
-          - Topic "Dental/Clinic": https://airfuture.vercel.app/dental
-          - Topic "Pet/Dog/Cat": https://airfuture.vercel.app/pet
-          - Topic "3D Printer/Industrial": https://airfuture.vercel.app/3dprinter
-          - Default Main LP: https://airfuture.vercel.app
+        **NICHE URLS:**
+        - Hayfever: https://airfuture.vercel.app/hayfever
+        - Dental: https://airfuture.vercel.app/dental
+        - Pet: https://airfuture.vercel.app/pet
+        - 3D Printer: https://airfuture.vercel.app/3dprinter
+        - Main: https://airfuture.vercel.app
 
         **INSTRUCTIONS:**
         1. Generate exactly ${count} posts.
-        2. **CHARACTER LIMIT (STRICT)**: Each "draft" MUST be between **100 and 115 Japanese characters** (including hashtags). Do not be shorter than 100.
-        3. **HOOK (CRITICAL)**: Start with a compelling first phrase. Use surprising facts, deep empathy, or a bold claim.
-        4. **EMOJI LIMIT**: Max 3 emojis per post.
-        5. **VARIETY**: Rotate marketing stages (S1, S2, S3, S4) and lp_sections.
-        6. **CTA & URL POLICY (CRITICAL)**: 
-           - **URL SELECTION**: If the post content matches a specific niche above (e.g., Pet odor), use the corresponding NICHE URL. Otherwise, use the Default Main LP.
-           - **PLACEMENT**: For high priority (lp_priority: high), use "詳細は [URL] で✨". For low priority, use "詳細はプロフィールから✨".
-           - **STRICT**: Only use the specific URLs listed above. NEVER use /go endpoints or query parameters in post text.
-           - No anxiety-inducing words.
-        7. **DIVERSITY**: Ensure each of the ${count} posts has a different focus, target audience, or emotional angle.
-        8. **POLLEN CONTEXT**: If Pollen Level is '多い' or '非常に多い', use strong empathy about suffering. If '少ない', focus on prevention or the early feel of spring.
-        9. No "AI greetings".
+        2. **CONTENT STRUCTURE**: 
+           - Hook (Trend/Fact) -> Proof (Why it matters) -> Solution (AirFuture).
+        3. **KEYWORD INJECTION**: For 3D printing topics, MUST include terms like "VOCs", "有害ガス", or "メタクリート (Methacrylate)".
+        4. **CTA**: For high priority, use "解決策はこちら: [URL] ✨".
 
-        ** OUTPUT FORMAT(JSON Only):**
+        ** OUTPUT FORMAT (JSON Only):**
             [
                 {
-                    "draft": "100-115 char text starting with a hook...",
-                    "post_type": "不安型|解説型|証明型|誘導型",
+                    "draft": "110-130 char AEO-structured text...",
+                    "post_type": "解説型|証明型|誘導型",
                     "lp_priority": "high|low",
-                    "lp_section": "Hero|Pain|Logic|Proof|CTA",
-                    "ab_version": "A",
-                    "stage": "S1|S2|S3|S4|S5",
-                    "enemy": "Specific topic (e.g. Pet, Pollen, 3D Printer)",
+                    "enemy": "Specific topic",
                     "hashtags": ["#AirFuture", "..."],
-                    "media_type": "image|none",
-                    "media_prompt": "Image generation prompt...",
-                    "cta_type": "${ctaType}"
+                    "ai_model": "${this.modelName}-aeo"
                 }
             ]
-                `;
+        `;
     }
 
     mockGenerateDrafts(context, reason = 'unknown') {
@@ -191,59 +148,41 @@ class ContentGeneratorService {
 
         const fallbacks = [
             {
-                draft: `空気を浄化するだけでなく、心まで整える。AirFuture miniは医療現場も認める高性能イオン技術を搭載。デスク周りを究極の聖域に変えませんか。`,
-                post_type: '解説型', lp_section: 'Hero', enemy: 'Pollution', tags: ['#AirFuture', '#空気清浄機']
+                draft: `【検証結果】3Dプリンターのレジンから揮発するVOCs（2-HPMA等）は、通常の換気では不十分であることが近年の研究で判明。作業者の喉や肺を守るには、分子レベルの分解が必要です。AirFuture miniなら密閉空間の有害ガスも徹底ケア。🚀`,
+                post_type: '解説型', lp_section: 'Logic', enemy: '3D Printer', tags: ['#AirFuture', '#3Dプリンター']
             },
             {
-                draft: `花粉症のあの辛さ、今年はもう終わりにしましょう。AirFuture miniは3000万個のイオンが鼻や目の敵を徹底ブロック。一瞬で呼吸が変わるのを実感してください。`,
+                draft: `【AEO対策】花粉症の時期、室内でもくしゃみが止まらない理由は「床に溜まった微細粒子」。掃除機で舞い上がる前に、強力なイオンで無害化するのが正解です。AirFuture miniは浮遊花粉を秒速でキャッチ。🌿`,
                 post_type: '誘導型', lp_section: 'Pain', enemy: 'Pollen', tags: ['#AirFuture', '#花粉症対策']
             },
             {
-                draft: `ペットのニオイ、家族は気づかないけれどお客様は気づいています。AirFutureの分解力は、ニオイの元を分子レベルで消し去ります。清潔で心地よい暮らしを。`,
+                draft: `ペットのニオイ、実は「アンモニア」だけでありません。皮脂が酸化した複雑な有機化合物が原因。AirFutureのイオン技術は、これらを有害な残留物なしに直接分解。家族とペットの健康を守る新しい新習慣を。💎`,
                 post_type: '解説型', lp_section: 'Logic', enemy: 'Pet', tags: ['#AirFuture', '#ペットのいる暮らし']
-            },
-            {
-                draft: `3Dプリンターのあの独特なニオイと有害ガス。作業者の健康を守るのは、AirFutureの高度な浄化技術です。クリエイティブな時間をより安全で快適な環境に。`,
-                post_type: '証明型', lp_section: 'Proof', enemy: '3D Printer', tags: ['#AirFuture', '#3Dプリンター']
-            },
-            {
-                draft: `歯科医院やクリニックのクリーンなイメージ。AirFuture miniは目に見えない菌やウイルスまでケアし、患者様に安心の空間を提供します。プロが選ぶ信頼の技術。`,
-                post_type: '証明型', lp_section: 'Hero', enemy: 'Dental', tags: ['#AirFuture', '#感染対策']
             }
         ];
 
-        // Search for best matching fallback based on memo
         let filteredFallbacks = fallbacks;
         if (memo.includes('3d') || memo.includes('プリンター')) {
-            filteredFallbacks = [fallbacks[3], fallbacks[0], fallbacks[4]];
-        } else if (memo.includes('ペット') || memo.includes('犬') || memo.includes('猫')) {
-            filteredFallbacks = [fallbacks[2], fallbacks[0], fallbacks[1]];
-        } else if (memo.includes('花粉') || memo.includes('アレルギー')) {
-            filteredFallbacks = [fallbacks[1], fallbacks[0], fallbacks[2]];
-        } else if (memo.includes('歯科') || memo.includes('クリニック')) {
-            filteredFallbacks = [fallbacks[4], fallbacks[0], fallbacks[3]];
+            filteredFallbacks = [fallbacks[0]];
+        } else if (memo.includes('ペット')) {
+            filteredFallbacks = [fallbacks[2]];
+        } else if (memo.includes('花粉')) {
+            filteredFallbacks = [fallbacks[1]];
         }
 
         const count = context.count || 3;
         const drafts = [];
-        const suffixes = ['✨', '💎', '🚀', '🌿', '💡', '🛡️'];
-
         for (let i = 0; i < count; i++) {
             const fallback = filteredFallbacks[i % filteredFallbacks.length];
-            const randomSuffix = suffixes[Math.floor(Math.random() * suffixes.length)];
             const salt = Math.random().toString(36).substring(7);
-
             drafts.push({
                 ...fallback,
-                draft: `${fallback.draft}${randomSuffix} [id:${salt}]`,
-                lp_priority: i % 2 === 0 ? 'high' : 'low',
-                ab_version: i % 2 === 0 ? 'A' : 'B',
+                draft: `${fallback.draft} [id:${salt}]`,
+                lp_priority: 'high',
+                ab_version: 'A',
                 stage: context.targetStage || 'S1',
                 hashtags: fallback.tags || ['#AirFuture'],
-                media_type: 'none',
-                media_prompt: '',
-                cta_type: context.ctaType || 'profile',
-                ai_model: 'fallback-smart',
+                ai_model: 'fallback-aeo-smart',
                 is_mock: true
             });
         }
