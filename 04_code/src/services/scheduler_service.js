@@ -83,15 +83,28 @@ class SchedulerService {
         }
     }
 
-    async processScheduledPosts() {
+    async processScheduledPosts(isRetry = false) {
         if (this.consecutiveFailures >= this.CIRCUIT_BREAKER_THRESHOLD) {
             logger.warn('Circuit breaker active. Skipping posting.');
             return { skipped_count: 1, reason: 'circuit_breaker' };
         }
 
         const stats = { processed_count: 0, success_count: 0, failed_count: 0, skipped_count: 0 };
-        const posts = await dataService.getPosts();
+        let posts = await dataService.getPosts();
         const nowJST = this._getNowJST();
+
+        // --- AUTO-REPLENISH CHECK ---
+        // If stock is low (< 6 posts = 2 days), trigger generation automatically
+        const scheduledCount = posts.filter(p => p.status === 'scheduled' || p.status === 'retry').length;
+        if (scheduledCount < 6 && !isRetry) {
+            logger.warn(`[AUTO-REPLENISH] Low stock detected (${scheduledCount}). Triggering daily drafts generation.`);
+            try {
+                await this.generateDailyDrafts(3);
+                return this.processScheduledPosts(true); // One-time retry with fresh stock
+            } catch (replenishError) {
+                logger.error('[AUTO-REPLENISH] Failed to replenish stock', replenishError);
+            }
+        }
 
         // Filter posts to be posted (using JST timezone)
         const toPost = posts.filter(p => {
@@ -165,6 +178,7 @@ class SchedulerService {
             }).format(nowJST));
 
             logger.info(`[CRON] No due posts to process. Current JST Hour: ${hourJST}`);
+
             if ([8, 12, 20].includes(hourJST)) {
                 // Safety: Check if we ALREADY posted for this specific hour slot to avoid duplicate emergency gens (especially with 10-min crons)
                 const alreadyPostedThisSlot = posts.some(p => {
@@ -382,7 +396,7 @@ class SchedulerService {
                             const jitteredDate = new Date(baseTime.getTime() + Math.floor(Math.random() * 8 * 60 * 1000));
                             const jitteredTime = this._formatJST(jitteredDate).split(' ')[1];
 
-                            await dataService.addPost({
+                            const result = await dataService.addPost({
                                 ...drafts[i],
                                 status: 'scheduled',
                                 scheduled_at: `${targetStr} ${jitteredTime}`,
