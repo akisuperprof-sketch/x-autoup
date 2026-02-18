@@ -185,36 +185,38 @@ class ContentGeneratorService {
     }
 
     mockGenerateDrafts(context, reason = 'unknown') {
-        const isLeaked = reason.includes('403') || reason.includes('API key');
-        const prefix = isLeaked ? '【再検証】' : '【AI生成】';
         logger.warn(`[ContentGenerator] Falling back to pre-defined drafts. Reason: ${reason}`);
-
-        const timestamp = new Date().getTime();
 
         const fallbacks = [
             {
-                draft: `${prefix}空気を浄化するだけでなく、心まで整える。AirFuture miniは医療現場も認める高性能イオン技術を搭載。デスク周りを究極の聖域に変えませんか。(${timestamp}-A) ✨ #AirFuture #空気清浄機`,
+                draft: "空気を浄化するだけでなく、心まで整える。AirFuture miniは医療現場も認める高性能イオン技術を搭載。デスク周りを究極の聖域に変えませんか。✨ #AirFuture #空気清浄機 #デスクセットアップ",
                 post_type: '解説型',
                 lp_section: 'Hero',
                 enemy: 'Pollution'
             },
             {
-                draft: `${prefix}花粉症のあの辛さ、今年はもう終わりにしましょう。AirFuture miniは3000万個のイオンが鼻や目の敵を徹底ブロック。一瞬で呼吸が変わる。(${timestamp}-B) 🌸 #AirFuture #花粉症対策`,
+                draft: "花粉症のあの辛さ、今年はもう終わりにしましょう。AirFuture miniは3000万個のイオンが鼻や目の敵を徹底ブロック。一瞬で呼吸が変わるのを実感してください。🌸 #AirFuture #花粉症対策 #鼻うがい",
                 post_type: '誘導型',
                 lp_section: 'Pain',
                 enemy: 'Pollen'
             },
             {
-                draft: `${prefix}ペットのニオイ、家族は気づかないけれどお客様は気づいています。AirFutureの分解力は、ニオイの元を分子レベルで消し去ります。清潔な暮らしを。(${timestamp}-C) 🐾 #AirFuture #ペットのいる暮らし`,
+                draft: "ペットのニオイ、家族は気づかないけれどお客様は気づいています。AirFutureの分解力は、ニオイの元を分子レベルで消し去ります。清潔で心地よい暮らしを。🐾 #AirFuture #ペットのいる暮らし #消臭",
                 post_type: '解説型',
                 lp_section: 'Logic',
                 enemy: 'Pet'
             },
             {
-                draft: `${prefix}3Dプリンターのあの独特なニオイと有害ガス。作業者の健康を守るのは、AirFutureの高度な浄化技術です。クリエイティブな環境に安全を。(${timestamp}-D) 🖨️ #AirFuture #3Dプリンター`,
+                draft: "3Dプリンターのあの独特なニオイと有害ガス。作業者の健康を守るのは、AirFutureの高度な浄化技術です。クリエイティブな時間をより安全で快適な環境に。🖨️ #AirFuture #3Dプリンター #メイカーズ",
                 post_type: '証明型',
                 lp_section: 'Proof',
                 enemy: '3D Printer'
+            },
+            {
+                draft: "「持ち運べる、自分だけの空気」。AirFuture miniなら、オフィスでもカフェでも、どこでも清潔な空間を。あなたのパフォーマンスを最大化するパートナー。💼 #AirFuture #ノマドワーク #集中力アップ",
+                post_type: '誘導型',
+                lp_section: 'Hero',
+                enemy: 'Pollution'
             }
         ];
 
@@ -231,7 +233,8 @@ class ContentGeneratorService {
                 media_type: 'none',
                 media_prompt: '',
                 cta_type: context.ctaType || 'profile',
-                ai_model: isLeaked ? 'leaked-key-mock' : 'fallback-standard'
+                ai_model: 'fallback-production',
+                is_mock: true
             });
         }
         return drafts;
