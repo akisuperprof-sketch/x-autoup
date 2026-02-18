@@ -187,36 +187,34 @@ class ContentGeneratorService {
     mockGenerateDrafts(context, reason = 'unknown') {
         logger.warn(`[ContentGenerator] Falling back to pre-defined drafts. Reason: ${reason}`);
 
-        const ts = new Date().getTime().toString().slice(-4);
-        const memoSuffix = context.memoContent ? ` (${context.memoContent})` : '';
-
+        // No markers in production text as per USER request
         const fallbacks = [
             {
-                draft: `空気を浄化するだけでなく、心まで整える。AirFuture miniは医療現場も認める高性能イオン技術を搭載。デスク周りを究極の聖域に変えませんか。✨ #${ts} #AirFuture #空気清浄機${memoSuffix}`,
+                draft: `空気を浄化するだけでなく、心まで整える。AirFuture miniは医療現場も認める高性能イオン技術を搭載。デスク周りを究極の聖域に変えませんか。✨ #AirFuture #空気清浄機 #デスクセットアップ`,
                 post_type: '解説型',
                 lp_section: 'Hero',
                 enemy: 'Pollution'
             },
             {
-                draft: `花粉症のあの辛さ、今年はもう終わりにしましょう。AirFuture miniは3000万個のイオンが鼻や目の敵を徹底ブロック。一瞬で呼吸が変わるのを実感してください。🌸 #${ts} #AirFuture #花粉症対策${memoSuffix}`,
+                draft: `花粉症のあの辛さ、今年はもう終わりにしましょう。AirFuture miniは3000万個のイオンが鼻や目の敵を徹底ブロック。一瞬で呼吸が変わるのを実感してください。🌸 #AirFuture #花粉症対策 #鼻うがい`,
                 post_type: '誘導型',
                 lp_section: 'Pain',
                 enemy: 'Pollen'
             },
             {
-                draft: `ペットのニオイ、家族は気づかないけれどお客様は気づいています。AirFutureの分解力は、ニオイの元を分子レベルで消し去ります。清潔で心地よい暮らしを。🐾 #${ts} #AirFuture #ペットのいる暮らし${memoSuffix}`,
+                draft: `ペットのニオイ、家族は気づかないけれどお客様は気づいています。AirFutureの分解力は、ニオイの元を分子レベルで消し去ります。清潔で心地よい暮らしを。🐾 #AirFuture #ペットのいる暮らし #消臭`,
                 post_type: '解説型',
                 lp_section: 'Logic',
                 enemy: 'Pet'
             },
             {
-                draft: `3Dプリンターのあの独特なニオイと有害ガス。作業者の健康を守るのは、AirFutureの高度な浄化技術です。クリエイティブな時間をより安全で快適な環境に。🖨️ #${ts} #AirFuture #3Dプリンター${memoSuffix}`,
+                draft: `3Dプリンターのあの独特なニオイと有害ガス。作業者の健康を守るのは、AirFutureの高度な浄化技術です。クリエイティブな時間をより安全で快適な環境に。🖨️ #AirFuture #3Dプリンター`,
                 post_type: '証明型',
                 lp_section: 'Proof',
                 enemy: '3D Printer'
             },
             {
-                draft: `「持ち運べる、自分だけの空気」。AirFuture miniなら、オフィスでもカフェでも、どこでも清潔な空間を。あなたのパフォーマンスを最大化するパートナー。💼 #${ts} #AirFuture #ノマドワーク${memoSuffix}`,
+                draft: `「持ち運べる、自分だけの空気」。AirFuture miniなら、オフィスでもカフェでも、どこでも清潔な空間を。あなたのパフォーマンスを最大化するパートナー。💼 #AirFuture #ノマドワーク`,
                 post_type: '誘導型',
                 lp_section: 'Hero',
                 enemy: 'Pollution'

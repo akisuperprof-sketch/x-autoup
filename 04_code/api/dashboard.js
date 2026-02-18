@@ -129,8 +129,6 @@ module.exports = async (req, res) => {
             return true;
         });
 
-        const pvTrend = generatePvTrend(journeyLogs, nowJST);
-
         Object.assign(kpi, {
             queued: posts.filter(p => p.status === 'scheduled' || p.status === 'draft_ai').length,
             posted_total: posts.filter(p => p.status === 'posted').length,
@@ -145,7 +143,7 @@ module.exports = async (req, res) => {
             cvr,
             clicks_by_source: clicksBySource,
             cv_by_source: cvBySource,
-            pv_trend: pvTrend
+            pv_trend: generatePvTrend(journeyLogs, posts, nowJST)
         });
 
         // Visitor Journeys (Filter to match main KPI)
@@ -268,15 +266,15 @@ module.exports = async (req, res) => {
 };
 
 /**
- * 直近7日間の日次PVデータを生成
+ * 直近7日間の日次PVおよび投稿数データを生成
  */
-function generatePvTrend(logs, nowJST) {
+function generatePvTrend(logs, posts, nowJST) {
     const bins = {};
     // 直近7日間の枠を作成 (今日を含む)
     for (let i = 6; i >= 0; i--) {
         const d = new Date(nowJST.getTime() - i * 24 * 60 * 60 * 1000);
         const key = `${d.getMonth() + 1}/${d.getDate()}`;
-        bins[key] = 0;
+        bins[key] = { pv: 0, posts: 0 };
     }
 
     logs.forEach(row => {
@@ -285,9 +283,19 @@ function generatePvTrend(logs, nowJST) {
             if (!ts) return;
             const d = new Date(ts.replace(' ', 'T'));
             const key = `${d.getMonth() + 1}/${d.getDate()}`;
-            if (bins[key] !== undefined) bins[key]++;
+            if (bins[key] !== undefined) bins[key].pv++;
         } catch (e) { }
     });
 
-    return Object.entries(bins).map(([t, v]) => ({ t, v }));
+    posts.forEach(p => {
+        if (p.status === 'posted' && p.posted_at) {
+            try {
+                const d = new Date(p.posted_at);
+                const key = `${d.getMonth() + 1}/${d.getDate()}`;
+                if (bins[key] !== undefined) bins[key].posts++;
+            } catch (e) { }
+        }
+    });
+
+    return Object.entries(bins).map(([t, v]) => ({ t, v: v.pv, posts: v.posts }));
 }

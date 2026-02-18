@@ -87,7 +87,7 @@ module.exports = async (req, res) => {
                 ...drafts[i],
                 stage: drafts[i].stage || rotatedStage,
                 ab_version: drafts[i].ab_version || abVersion,
-                status: drafts[i].is_mock ? 'draft_ai' : 'scheduled',
+                status: 'scheduled', // Set directly to scheduled for automatic posting
                 scheduled_at: `${dateStr} ${timeStr}`
             });
             if (result && !result.skipped) saved.push(drafts[i]);
