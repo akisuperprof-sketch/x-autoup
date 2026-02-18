@@ -14,6 +14,10 @@
       "destination": "/api/go"
     },
     {
+      "source": "/admin",
+      "destination": "https://v0-air-future-mini-design.vercel.app/admin"
+    },
+    {
       "source": "/apply",
       "destination": "/public/apply.html"
     },
