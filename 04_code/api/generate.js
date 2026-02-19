@@ -34,6 +34,10 @@ module.exports = async (req, res) => {
         const templates = await dataService.getContentTemplates();
         const patterns = await dataService.getPostPatterns();
 
+        const JST_OFFSET = 9 * 60 * 60 * 1000;
+        const getJstDate = (d) => new Date(d.getTime() + JST_OFFSET);
+        const getJstDateStr = (d) => getJstDate(d).toISOString().split('T')[0];
+
         const today = new Date();
         const totalCount = parseInt(days) * parseInt(count);
 
@@ -58,26 +62,26 @@ module.exports = async (req, res) => {
         const timeSlots = ['08:00:00', '12:00:00', '20:00:00'];
         const stages = ['S1', 'S2', 'S3', 'S4'];
 
+        // Base date for scheduling
+        let startBase;
+        if (startDate) {
+            startBase = new Date(startDate + 'T00:00:00+09:00');
+        } else {
+            // Tomorrow 00:00 JST to be safe, or today if still early. 
+            // Better: Start from the first slot after 'now'.
+            startBase = new Date(new Date().getTime());
+        }
+
         for (let i = 0; i < drafts.length; i++) {
-            const dayOffset = Math.floor(i / count);
-            const slotIndex = i % count;
+            const dayOffset = Math.floor(i / timeSlots.length);
+            const slotIndex = i % timeSlots.length;
 
-            // FIXED: Use startDate if provided, otherwise use current JST date
-            let baseDate;
-            if (startDate) {
-                // Parse startDate (YYYY-MM-DD format) as JST
-                baseDate = new Date(startDate + 'T00:00:00+09:00');
-            } else {
-                // Use current JST time
-                const now = new Date();
-                const jstString = now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' });
-                baseDate = new Date(jstString);
-            }
+            const targetDate = new Date(startBase.getTime());
+            targetDate.setDate(targetDate.getDate() + dayOffset);
 
-            baseDate.setDate(baseDate.getDate() + dayOffset);
-
-            // Format as YYYY/MM/DD in JST
-            const dateStr = baseDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' }).replace(/-/g, '/');
+            // Format for JST
+            const jst = getJstDate(targetDate);
+            const dateStr = jst.toISOString().split('T')[0].replace(/-/g, '/');
             const timeStr = timeSlots[slotIndex % timeSlots.length];
 
             const rotatedStage = stages[i % stages.length];
