@@ -175,24 +175,31 @@ class ContentGeneratorService {
         const count = context.count || 3;
         const drafts = [];
         const memoStr = context.memoContent || '空気環境';
+        const nowMs = Date.now();
 
         for (let i = 0; i < count; i++) {
             const fallback = filteredFallbacks[i % filteredFallbacks.length];
+            const salt = Math.random().toString(36).substring(7);
             const zwsp = '\u200B'.repeat(i + 1);
 
             let finalDraft = fallback.draft;
+            // Topic Injection
             if (memoStr && !finalDraft.includes(memoStr)) {
                 finalDraft = `【${memoStr.substring(0, 10)}】${finalDraft}`;
             }
 
+            // Randomness injection to bypass similarity (Jaccard)
+            const deco = ['✨', '💎', '🛡️', '🚀', '🌿'][i % 5];
+            finalDraft = `${finalDraft} ${deco} (${salt})`.substring(0, 140);
+
             drafts.push({
                 ...fallback,
-                draft: `${finalDraft}${zwsp}`.substring(0, 140),
+                draft: `${finalDraft}${zwsp}`,
                 lp_priority: 'high',
                 ab_version: 'A',
                 stage: context.targetStage || 'S1',
                 hashtags: fallback.tags || ['#AirFuture'],
-                ai_model: 'fallback-aeo-smart-v2',
+                ai_model: 'fallback-aeo-smart-v3',
                 is_mock: true
             });
         }
