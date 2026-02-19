@@ -72,15 +72,15 @@ module.exports = async (req, res) => {
         }
 
         for (let i = 0; i < drafts.length; i++) {
-            const dayOffset = Math.floor(i / timeSlots.length);
-            const slotIndex = i % timeSlots.length;
+            const dayOffset = Math.floor(i / (parseInt(count) || 3));
+            const slotIndex = i % (parseInt(count) || 3);
 
             const targetDate = new Date(startBase.getTime());
             targetDate.setDate(targetDate.getDate() + dayOffset);
 
             const jst = getJstDate(targetDate);
             const dateStr = jst.toISOString().split('T')[0].replace(/-/g, '/');
-            const timeStr = timeSlots[slotIndex];
+            const timeStr = timeSlots[slotIndex % timeSlots.length];
 
             const rotatedStage = stages[i % stages.length];
             const abVersion = (i % 2 === 0) ? 'A' : 'B';
