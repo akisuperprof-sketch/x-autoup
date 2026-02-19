@@ -174,20 +174,25 @@ class ContentGeneratorService {
 
         const count = context.count || 3;
         const drafts = [];
+        const memoStr = context.memoContent || '空気環境';
+
         for (let i = 0; i < count; i++) {
             const fallback = filteredFallbacks[i % filteredFallbacks.length];
-            // No more visible ID tags. We rely on the database slot_id and hash for deduplication.
-            // If we absolutely need a slight variance to bypass SNS spam filters, we use an invisible character.
-            const zwsp = '\u200B'; // Zero-width space
+            const zwsp = '\u200B'.repeat(i + 1);
+
+            let finalDraft = fallback.draft;
+            if (memoStr && !finalDraft.includes(memoStr)) {
+                finalDraft = `【${memoStr.substring(0, 10)}】${finalDraft}`;
+            }
 
             drafts.push({
                 ...fallback,
-                draft: `${fallback.draft}${zwsp}`,
+                draft: `${finalDraft}${zwsp}`.substring(0, 140),
                 lp_priority: 'high',
                 ab_version: 'A',
                 stage: context.targetStage || 'S1',
                 hashtags: fallback.tags || ['#AirFuture'],
-                ai_model: 'fallback-aeo-clean',
+                ai_model: 'fallback-aeo-smart-v2',
                 is_mock: true
             });
         }

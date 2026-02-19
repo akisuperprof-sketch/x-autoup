@@ -59,6 +59,7 @@ module.exports = async (req, res) => {
 
         // Save drafts with spreading logic
         const saved = [];
+        const skippedReasons = [];
         const timeSlots = ['08:00:00', '12:00:00', '20:00:00'];
         const stages = ['S1', 'S2', 'S3', 'S4'];
 
@@ -67,9 +68,7 @@ module.exports = async (req, res) => {
         if (startDate) {
             startBase = new Date(startDate + 'T00:00:00+09:00');
         } else {
-            // Tomorrow 00:00 JST to be safe, or today if still early. 
-            // Better: Start from the first slot after 'now'.
-            startBase = new Date(new Date().getTime());
+            startBase = new Date();
         }
 
         for (let i = 0; i < drafts.length; i++) {
@@ -79,10 +78,9 @@ module.exports = async (req, res) => {
             const targetDate = new Date(startBase.getTime());
             targetDate.setDate(targetDate.getDate() + dayOffset);
 
-            // Format for JST
             const jst = getJstDate(targetDate);
             const dateStr = jst.toISOString().split('T')[0].replace(/-/g, '/');
-            const timeStr = timeSlots[slotIndex % timeSlots.length];
+            const timeStr = timeSlots[slotIndex];
 
             const rotatedStage = stages[i % stages.length];
             const abVersion = (i % 2 === 0) ? 'A' : 'B';
@@ -91,16 +89,22 @@ module.exports = async (req, res) => {
                 ...drafts[i],
                 stage: drafts[i].stage || rotatedStage,
                 ab_version: drafts[i].ab_version || abVersion,
-                status: 'scheduled', // Set directly to scheduled for automatic posting
+                status: 'scheduled',
                 scheduled_at: `${dateStr} ${timeStr}`
             });
-            if (result && !result.skipped) saved.push(drafts[i]);
+
+            if (result && !result.skipped) {
+                saved.push(drafts[i]);
+            } else {
+                skippedReasons.push(result ? result.reason : 'unknown');
+            }
         }
 
+        const distinctReasons = [...new Set(skippedReasons)];
         res.status(200).json({
             success: true,
             count: saved.length,
-            message: `Generated ${saved.length} drafts for over ${days} day(s).`
+            message: `Generated ${saved.length} drafts. (Skipped ${skippedReasons.length} posts due to: ${distinctReasons.join(', ') || 'none'})`
         });
 
     } catch (error) {
