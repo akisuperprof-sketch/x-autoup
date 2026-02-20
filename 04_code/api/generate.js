@@ -56,6 +56,9 @@ module.exports = async (req, res) => {
         };
 
         const drafts = await contentGeneratorService.generateDrafts(context, { ...dictionaries, templates, patterns }, feedback);
+        if (drafts.length === 0) {
+            return res.status(200).json({ success: true, count: 0, message: "AI generation returned 0 drafts. Check prompt or API keys." });
+        }
 
         // Save drafts with spreading logic
         const saved = [];

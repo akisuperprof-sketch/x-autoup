@@ -1,0 +1,3 @@
+[2026-02-19T13:45:06.570Z] [INFO] Connected to Google Sheet: AF-X投稿関連 x-autoup 
+[2026-02-19T13:45:06.571Z] [INFO] DataService v2 initialized with Google Sheets storage. 
+[2026-02-19T13:45:10.047Z] [WARN] [ContentGenerator] Falling back to pre-defined drafts. Reason: API_KEY_MISSING 

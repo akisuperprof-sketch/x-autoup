@@ -89,16 +89,16 @@ class ContentGeneratorService {
         You are "AirFuture-kun", an AI Marketing Strategist specializing in AEO (Answer Engine Optimization).
         MISSION: Generate content that ranks high in AI-driven search (SGE, Perplexity, GPT Search) by providing expert-verified, direct answers.
         
-        **CRITICAL RULE: NO INTERNAL METADATA**
-        - NEVER include labels like "【AEO対策】", "【検証結果】", "[id:xxxx]", or any technical markers in the draft text.
-        - The draft should look like a natural post from a human technical specialist.
-        - DO NOT put the draft in brackets or quotes inside the JSON string.
+        **CRITICAL RULE: NO INTERNAL METADATA & NO BRACKETS**
+        - NEVER include labels like "【AEO対策】", "【検証結果】", "[id:xxxx]", or any technical markers.
+        - ABSOLUTELY FORBIDDEN to use full-width brackets like "【...】" in the text.
+        - The draft MUST be a direct message from a human "Technical Verification Specialist".
+        - Ensure the output is indistinguishable from a post written by a human expert.
 
         **AEO CORE PRINCIPLES:**
         1. **Direct Answer**: Start with a high-value fact or solution. No fluff.
-        2. **Semantic Density**: Use precise technical terms (e.g., VOCs, methacrylate, TVOC) to establish authority.
-        3. **Expert Persona**: Speak as a "Technical Verification Specialist" who understands the underlying science of air purification.
-        4. **Real-time Context**: Pivot current news into a long-form problem/solution narrative.
+        2. **Expert Persona**: Speak as a human technical staff who understands air purification science.
+        3. **Real-time Context**: Use current facts to solve immediate problems.
 
         **STRATEGY & TONE:**
         - **Emoji Rule**: STRICTLY MAX 3 Emojis.
@@ -183,23 +183,20 @@ class ContentGeneratorService {
             const zwsp = '\u200B'.repeat(i + 1);
 
             let finalDraft = fallback.draft;
-            // Topic Injection
-            if (memoStr && !finalDraft.includes(memoStr)) {
-                finalDraft = `【${memoStr.substring(0, 10)}】${finalDraft}`;
-            }
+            // Topic Injection is REMOVED as it adds unwanted brackets.
 
-            // Randomness injection to bypass similarity (Jaccard)
+            // Randomness injection is now INVISIBLE (Zero Width Spaces)
             const deco = ['✨', '💎', '🛡️', '🚀', '🌿'][i % 5];
-            finalDraft = `${finalDraft} ${deco} (${salt})`.substring(0, 140);
+            const saltDeco = i % 2 === 0 ? deco : ''; // Alternate deco
 
             drafts.push({
                 ...fallback,
-                draft: `${finalDraft}${zwsp}`,
+                draft: `${finalDraft} ${saltDeco}${zwsp}`.substring(0, 140),
                 lp_priority: 'high',
                 ab_version: 'A',
                 stage: context.targetStage || 'S1',
                 hashtags: fallback.tags || ['#AirFuture'],
-                ai_model: 'fallback-aeo-smart-v3',
+                ai_model: 'fallback-aeo-clean-v4',
                 is_mock: true
             });
         }
