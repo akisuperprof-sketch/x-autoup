@@ -107,7 +107,7 @@ class DataService {
             return { skipped: true, reason: 'duplicate_hash' };
         }
 
-        if (post.status !== 'draft_ai') {
+        if (post.status !== 'draft_ai' && !post.is_mock) {
             for (const p of recentPosts) {
                 // Relaxed similarity threshold for Japanese text (0.8 -> 0.95)
                 if (this._calculateSimilarity(text, p.draft) > 0.95) {
