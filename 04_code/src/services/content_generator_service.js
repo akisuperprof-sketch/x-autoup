@@ -178,8 +178,8 @@ class ContentGeneratorService {
         for (let i = 0; i < count; i++) {
             const fallback = filteredFallbacks[i % filteredFallbacks.length];
             // NO VISIBLE SALT. NO BRACKETS.
-            // Use only Zero Width Spaces (ZWSP) for slight internal variance (deduplication)
-            const zwsp = '\u200B'.repeat(i + 1);
+            // Use Zero Width Spaces (ZWSP) with random entropy for variance
+            const zwsp = '\u200B'.repeat(i + 1 + (Date.now() % 10));
 
             drafts.push({
                 ...fallback,
@@ -188,7 +188,7 @@ class ContentGeneratorService {
                 ab_version: 'A',
                 stage: context.targetStage || 'S1',
                 hashtags: fallback.tags || ['#AirFuture'],
-                ai_model: 'fallback-aeo-final-clean',
+                ai_model: 'fallback-aeo-final-v5',
                 is_mock: true
             });
         }
