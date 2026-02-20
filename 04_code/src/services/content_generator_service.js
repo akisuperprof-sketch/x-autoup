@@ -125,19 +125,23 @@ class ContentGeneratorService {
 
         **INSTRUCTIONS:**
         1. Generate exactly ${count} posts.
-        2. **CONTENT STRUCTURE**: Hook (Trend/Fact) -> Proof (Why it matters) -> Solution (AirFuture).
+        2. **DIVERSITY RULE**: Each post MUST have a distinct Angle and Hook.
+           - Post 1: Scientific/Factual (Why it happens)
+           - Post 2: Emotional/Empathetic (User pain point)
+           - Post 3: Direct Solution/Actionable (How to fix)
+           - Post 4+: Rotate angles.
         3. **KEYWORD INJECTION**: For 3D printing topics, MUST include terms like "VOCs", "有害ガス".
         4. **CTA**: For high priority, use "解決策はこちら: [URL] ✨".
 
         ** OUTPUT FORMAT (JSON Only):**
             [
                 {
-                    "draft": "Natural, expert-level text ONLY. No internal tags.",
+                    "draft": "Natural, expert-level text ONLY. No internal tags. VARY THE OPENING SENTENCE.",
                     "post_type": "解説型|証明型|誘導型",
                     "lp_priority": "high|low",
                     "enemy": "Specific topic",
                     "hashtags": ["#AirFuture", "..."],
-                    "ai_model": "${this.modelName}-aeo"
+                    "ai_model": "${this.modelName}-aeo-v2"
                 }
             ]
         `;

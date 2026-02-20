@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
     try {
         await dataService.init();
 
-        const { count = 3, stage = 'S1', storyMode = false, days = 1, memo = '', startDate } = req.body;
+        const { count = 3, stage = 'S1', memo = '', startDate } = req.body;
 
         // Fetch Dictionaries & Analysis for v2 Prompt
         const dictionaries = await dataService.getDictionaries();
@@ -39,18 +39,20 @@ module.exports = async (req, res) => {
         const getJstDateStr = (d) => getJstDate(d).toISOString().split('T')[0];
 
         const today = new Date();
-        const totalCount = parseInt(days) * parseInt(count);
-
         const pollenInfo = await pollenService.getPollenForecast();
+
+        // Count is now TOTAL posts to generate
+        const totalCount = parseInt(count);
+
         const context = {
             season: _getSeason(today),
             tokyoPollen: pollenInfo.tokyo,
             isPollenSeason: pollenInfo.isPollenSeason,
-            trend: storyMode ? 'Story Mode' : 'General',
+            trend: 'General',
             count: totalCount,
             targetStage: stage,
             productMentionAllowed: true,
-            storyMode: storyMode,
+            storyMode: false,
             memoContent: memo, // User provided free text
             recentPosts: posts.slice(-15) // Prevent similarity/duplicates
         };
@@ -74,9 +76,13 @@ module.exports = async (req, res) => {
             startBase = new Date();
         }
 
+        // Create time slots logic (3 slots per day)
+        const POSTS_PER_DAY = 3;
+
         for (let i = 0; i < drafts.length; i++) {
-            const dayOffset = Math.floor(i / (parseInt(count) || 3));
-            const slotIndex = i % (parseInt(count) || 3);
+            // Calculate day offset based on slot capacity
+            const dayOffset = Math.floor(i / POSTS_PER_DAY);
+            const slotIndex = i % POSTS_PER_DAY;
 
             const targetDate = new Date(startBase.getTime());
             targetDate.setDate(targetDate.getDate() + dayOffset);
