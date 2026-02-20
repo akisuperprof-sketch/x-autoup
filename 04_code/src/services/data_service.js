@@ -109,8 +109,9 @@ class DataService {
 
         if (post.status !== 'draft_ai') {
             for (const p of recentPosts) {
-                if (this._calculateSimilarity(text, p.draft) > 0.8) {
-                    logger.warn(`Skipping similar content (similarity > 0.8)`);
+                // Relaxed similarity threshold for Japanese text (0.8 -> 0.95)
+                if (this._calculateSimilarity(text, p.draft) > 0.95) {
+                    logger.warn(`Skipping similar content (similarity > 0.95)`);
                     return { skipped: true, reason: 'similarity_too_high' };
                 }
             }
