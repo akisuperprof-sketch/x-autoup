@@ -125,11 +125,18 @@ class ContentGeneratorService {
 
         **INSTRUCTIONS:**
         1. Generate exactly ${count} posts.
-        2. **DIVERSITY RULE**: Each post MUST have a distinct Angle and Hook.
-           - Post 1: Scientific/Factual (Why it happens)
-           - Post 2: Emotional/Empathetic (User pain point)
-           - Post 3: Direct Solution/Actionable (How to fix)
-           - Post 4+: Rotate angles.
+        2. **DIVERSITY & VARIETY RULES (STRICT):**
+           - **ABSOLUTELY FORBIDDEN**: Repeating the same opening phrase (e.g., "Do you know?", "Recently...").
+           - **ban**: Generic greetings like "Hello everyone".
+           - **Structure Rotation**:
+             - Post 1 (The Scientist): Start with a shocking statistic or chemical fact. Tone: Serious/Academic.
+             - Post 2 (The Friend): Start with "I saw this happen..." or "It's scary when...". Tone: Empathetic/Warm.
+             - Post 3 (The Coach): Start with a command "Check your room now!" or "Stop doing this!". Tone: Urgent/Action-oriented.
+             - Post 4+: Rotate these styles.
+           - **Sub-Topic Expansion**: If Topic is "3D Printer", generate:
+             - 1. Health Risks (VOCs)
+             - 2. Family Safety (Children/Pets)
+             - 3. Maintenance/Ventilation Techniques
         3. **KEYWORD INJECTION**: For 3D printing topics, MUST include terms like "VOCs", "有害ガス".
         4. **CTA**: For high priority, use "解決策はこちら: [URL] ✨".
 
@@ -139,9 +146,9 @@ class ContentGeneratorService {
                     "draft": "Natural, expert-level text ONLY. No internal tags. VARY THE OPENING SENTENCE.",
                     "post_type": "解説型|証明型|誘導型",
                     "lp_priority": "high|low",
-                    "enemy": "Specific topic",
-                    "hashtags": ["#AirFuture", "..."],
-                    "ai_model": "${this.modelName}-aeo-v2"
+                    "enemy": "Specific sub-topic",
+                    "hashtags": ["#AirFuture", "#SpecificTag"],
+                    "ai_model": "${this.modelName}-aeo-v3-diverse"
                 }
             ]
         `;
