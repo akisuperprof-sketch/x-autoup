@@ -152,28 +152,33 @@ class ContentGeneratorService {
 
         const memo = (context.memoContent || '').toLowerCase();
 
-        const fallbacks = [
-            {
-                draft: `3Dプリンターのレジンから揮発するVOCs（2-HPMA等）は、通常の換気では不十分であることが近年の研究で判明。作業者の喉や肺を守るには、分子レベルの分解が必要です。AirFuture miniなら、目に見えない有害ガスも徹底的にケアします。🚀`,
-                post_type: '解説型', lp_section: 'Logic', enemy: '3D Printer', tags: ['#AirFuture', '#3Dプリンター']
-            },
-            {
-                draft: `花粉症の時期、室内でもくしゃみが止まらない理由は「床に溜まった微細粒子」。掃除機で舞い上がる前に、強力なイオンで無害化するのが正解です。AirFuture miniは浮遊花粉を秒速でキャッチし、快適な空間を取り戻します。🌿`,
-                post_type: '誘導型', lp_section: 'Pain', enemy: 'Pollen', tags: ['#AirFuture', '#花粉症対策']
-            },
-            {
-                draft: `ペットのニオイ、実は「アンモニア」だけでなく、皮脂が酸化した複雑な有機化合物が原因。AirFutureのイオン技術は、これらを有害な残留物なしに直接分解。家族とペットの健康を守る新しい習慣を。💎`,
-                post_type: '解説型', lp_section: 'Logic', enemy: 'Pet', tags: ['#AirFuture', '#ペットのいる暮らし']
-            }
+        // Expanded mock data with multi-angle variations
+        const fallbacks_3d = [
+            { draft: "3Dプリンターのレジン臭、実は「慣れ」が一番危険。揮発するVOCsは静かに体に蓄積します。AirFutureの分解技術なら、換気しにくい冬場の作業部屋も安全なアトリエに変えられます。マスクなしで創作に没頭できる環境を。🚀", post_type: "感情型", tags: ["#3Dプリンター"] },
+            { draft: "【実験データ】レジン硬化時のPM2.5濃度は、喫煙室並みに達することも。通常の空気清浄機ではフィルターを素通りするガス状汚染物質も、AirFutureのイオンなら分子レベルで狙い撃ち分解します。制作環境の質が、作品の質を変える。🛡️", post_type: "解説型", tags: ["#レジン"] },
+            { draft: "家族に「臭い」と言われて3Dプリンターを諦めていませんか？AirFuture miniなら、稼働中もニオイをほぼゼロに抑え込みます。リビングの片隅でも、深夜でも、もう気を使う必要はありません。自宅ファブの必須装備です。🏠", post_type: "解決型", tags: ["#自宅工房"] }
         ];
 
-        let filteredFallbacks = fallbacks;
+        const fallbacks_pollen = [
+            { draft: "玄関で服を払っても、花粉の40%は室内に侵入しています。重要なのは「床に落ちる前に無力化」すること。AirFutureの高濃度イオンは、空中の花粉を包み込んで重くし、即座に落下＆不活性化させます。今年の春は、家の中だけは別世界に。🌿", post_type: "解説型", tags: ["#花粉対策"] },
+            { draft: "「朝起きた瞬間のくしゃみ」が辛いなら、寝室の空気が淀んでいる証拠。AirFuture miniを枕元に置けば、寝ている間に顔の周りの空気を洗浄し続けます。目覚めのスッキリ感が、1日のパフォーマンスを変えます。☀️", post_type: "感情型", tags: ["#モーニングルーティン"] },
+            { draft: "空気清浄機のフィルター交換、高くないですか？AirFutureはフィルターレスで経済的。花粉シーズンだけでなく、梅雨のカビ、夏のニオイまで一年中これ一台でOK。ランニングコスト0円で手に入れる、本当の安心。💰", post_type: "解決型", tags: ["#コスパ最強"] }
+        ];
+
+        const fallbacks_pet = [
+            { draft: "ペットのトイレ臭をごまかす芳香剤は、実は動物の嗅覚にはストレスかも。AirFutureは「香りで上書き」せず「ニオイの元を分解」します。無臭の快適空間は、人間だけでなく、大切な家族であるペットにとっても最高のプレゼント。🐶", post_type: "感情型", tags: ["#犬のいる暮らし"] },
+            { draft: "猫のフケや毛によるアレルギー反応。原因はタンパク質です。AirFutureから放出されるイオンは、アレルゲンの作用を抑制する働きがあります。「アレルギーだけど一緒に暮らしたい」その願い、技術でサポートします。🐱", post_type: "解説型", tags: ["#猫アレルギー"] },
+            { draft: "来客時に「ウチ、ペット臭う？」と心配する必要はもうありません。AirFuture miniなら、アンモニア臭をわずか30分で激減。小型なのでトイレの横やケージの近くに置いても邪魔になりません。クリアな空気でおもてなしを。✨", post_type: "解決型", tags: ["#ペット消臭"] }
+        ];
+
+        let filteredFallbacks = [...fallbacks_3d, ...fallbacks_pollen, ...fallbacks_pet];
+
         if (memo.includes('3d') || memo.includes('プリンター')) {
-            filteredFallbacks = [fallbacks[0]];
-        } else if (memo.includes('ペット')) {
-            filteredFallbacks = [fallbacks[2]];
+            filteredFallbacks = fallbacks_3d;
+        } else if (memo.includes('ペット') || memo.includes('犬') || memo.includes('猫')) {
+            filteredFallbacks = fallbacks_pet;
         } else if (memo.includes('花粉')) {
-            filteredFallbacks = [fallbacks[1]];
+            filteredFallbacks = fallbacks_pollen;
         }
 
         const count = context.count || 3;

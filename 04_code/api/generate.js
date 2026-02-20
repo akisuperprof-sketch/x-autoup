@@ -65,8 +65,6 @@ module.exports = async (req, res) => {
         // Save drafts with spreading logic
         const saved = [];
         const skippedReasons = [];
-        const timeSlots = ['08:00:00', '12:00:00', '20:00:00'];
-        const stages = ['S1', 'S2', 'S3', 'S4'];
 
         // Base date for scheduling
         let startBase;
@@ -76,37 +74,70 @@ module.exports = async (req, res) => {
             startBase = new Date();
         }
 
-        // Create time slots logic (3 slots per day)
-        const POSTS_PER_DAY = 3;
-
-        for (let i = 0; i < drafts.length; i++) {
-            // Calculate day offset based on slot capacity
-            const dayOffset = Math.floor(i / POSTS_PER_DAY);
-            const slotIndex = i % POSTS_PER_DAY;
-
-            const targetDate = new Date(startBase.getTime());
-            targetDate.setDate(targetDate.getDate() + dayOffset);
-
-            const jst = getJstDate(targetDate);
-            const dateStr = jst.toISOString().split('T')[0].replace(/-/g, '/');
-            const timeStr = timeSlots[slotIndex % timeSlots.length];
-
-            const rotatedStage = stages[i % stages.length];
-            const abVersion = (i % 2 === 0) ? 'A' : 'B';
-
-            const result = await dataService.addPost({
-                ...drafts[i],
-                stage: drafts[i].stage || rotatedStage,
-                ab_version: drafts[i].ab_version || abVersion,
-                status: 'scheduled',
-                scheduled_at: `${dateStr} ${timeStr}`
-            });
-
-            if (result && !result.skipped) {
-                saved.push(drafts[i]);
-            } else {
-                skippedReasons.push(result ? result.reason : 'unknown');
+        // SMART SCHEDULING LOGIC
+        // 1. Map existing occupied slots
+        const occupiedSlots = new Set();
+        posts.forEach(p => {
+            if ((p.status === 'scheduled' || p.status === 'posted') && p.scheduled_at) {
+                // Formatting: "YYYY/MM/DD HH:mm:ss"
+                // Normalize to remove seconds if present or specific variations
+                const norm = p.scheduled_at.replace(/-/g, '/').split(' ')[0] + ' ' + p.scheduled_at.split(' ')[1];
+                occupiedSlots.add(norm);
             }
+        });
+
+        // 2. Find available slots for new drafts
+        const timeSlots = ['08:00:00', '12:00:00', '20:00:00'];
+        const stages = ['S1', 'S2', 'S3', 'S4'];
+
+        let currentDate = new Date(startBase.getTime());
+        // Start from tomorrow if today is effectively over (optional, but keep simple for now starting 'startBase')
+
+        // Safety Break: Look ahead max 60 days
+        let assignedCount = 0;
+        let dayLoop = 0;
+
+        while (assignedCount < drafts.length && dayLoop < 60) {
+            const jst = getJstDate(currentDate);
+            const dateStr = jst.toISOString().split('T')[0].replace(/-/g, '/');
+
+            for (const timeStr of timeSlots) {
+                if (assignedCount >= drafts.length) break;
+
+                const slotKey = `${dateStr} ${timeStr}`;
+                if (!occupiedSlots.has(slotKey)) {
+                    // Start scheduling here
+                    const draft = drafts[assignedCount];
+                    const rotatedStage = stages[assignedCount % stages.length];
+                    const abVersion = (assignedCount % 2 === 0) ? 'A' : 'B';
+
+                    const result = await dataService.addPost({
+                        ...draft,
+                        stage: draft.stage || rotatedStage,
+                        ab_version: draft.ab_version || abVersion,
+                        status: 'scheduled',
+                        scheduled_at: slotKey
+                    });
+
+                    if (result && !result.skipped) {
+                        saved.push(draft);
+                        // Mark as occupied for this batch
+                        occupiedSlots.add(slotKey);
+                        assignedCount++;
+                    } else {
+                        skippedReasons.push(result ? result.reason : 'unknown');
+                        // If skipped due to duplicate hook/hash, we still move to next draft but this slot remains 'technically' free or used?
+                        // Actually if duplicate_hash, the DRAFT is bad, not the slot.
+                        // But we want to process the draft. If it failed, we should probably discard the draft and move on.
+                        if (result.reason === 'duplicate_hash' || result.reason === 'similarity_too_high') {
+                            assignedCount++; // Discard this draft, move to next
+                        }
+                    }
+                }
+            }
+            // Next day
+            currentDate.setDate(currentDate.getDate() + 1);
+            dayLoop++;
         }
 
         const distinctReasons = [...new Set(skippedReasons)];
