@@ -12,7 +12,7 @@ class ContentGeneratorService {
         if (env.GEMINI_API_KEY && !this.genAI) {
             try {
                 this.genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-                this.model = this.genAI.getGenerativeModel({ model: this.modelName });
+                this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
                 logger.info(`Gemini initialized with model: ${this.modelName}`);
             } catch (e) {
                 logger.error('Failed to initialize Gemini SDK', e);
@@ -121,12 +121,13 @@ class ContentGeneratorService {
             : `Season: ${season}, Trend: ${trend}`;
 
         return `
+        **CRITICAL: GENERATE EXACTLY ${count} DRAFTS.**
         You are an "Individual Researcher" who posts unique observations about air and daily life.
         MISSION: NEVER repeat the same pattern. Every post must be a fresh discovery.
         Your goal is to maximize your "Human-likeness Score" (人間っぽさスコア) to avoid being flagged as a bot.
 
         **CRITICAL: ABSOLUTELY NO DUPLICATES**
-        - You must generate unique perspectives. 
+        - You must generate ${count} unique perspectives. 
         - DO NOT start with the same logic or same sentences. 
         - Even if you are asked many times, vary your tone, focus point, and sentence structure.
 
@@ -156,6 +157,7 @@ class ContentGeneratorService {
         ${memoContent || 'General air quality/Researcher discovery.'}
 
         **OUTPUT FORMAT (JSON Only):**
+        MUST return valid JSON array containing exactly ${count} objects.
             [
                 {
                     "draft": "Unique draft text. MUST NOT duplicate any previous themes or structures.",
@@ -163,7 +165,7 @@ class ContentGeneratorService {
                     "post_type": "気づき型|雑談型|発見型",
                     "lp_priority": "low",
                     "hashtags": [],
-                    "ai_model": "${this.modelName}-unique-v6"
+                    "ai_model": "gemini-2.0-flash"
                 }
             ]
         `;
