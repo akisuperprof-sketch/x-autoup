@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 
 class ContentGeneratorService {
     constructor() {
-        this.modelName = 'gemini-1.5-flash';
+        this.modelName = 'gemini-2.0-flash';
         this.init();
     }
 
