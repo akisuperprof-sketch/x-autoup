@@ -32,123 +32,138 @@ class ContentGeneratorService {
             return this.mockGenerateDrafts(context, 'API_KEY_MISSING');
         }
 
-        const prompt = this.buildPrompt(context, dictionaries, feedback);
+        const prohibitedPrefixes = context.prohibitedPrefixes || [];
+        const maxRetries = 3;
+        let drafts = [];
 
-        try {
-            const result = await this.model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const prompt = this.buildPrompt(context, dictionaries, feedback);
+                const result = await this.model.generateContent(prompt);
+                const response = await result.response;
+                const text = response.text();
 
-            const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/\[[\s\S]*\]/);
-            if (!jsonMatch) {
-                logger.warn('Raw Gemini response:', text);
-                throw new Error('Failed to parse JSON from Gemini response');
-            }
+                const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/\[[\s\S]*\]/);
+                if (!jsonMatch) {
+                    logger.warn('Raw Gemini response:', text);
+                    throw new Error('Failed to parse JSON from Gemini response');
+                }
 
-            const jsonStr = jsonMatch[1] || jsonMatch[0];
-            let drafts = JSON.parse(jsonStr);
+                const jsonStr = jsonMatch[1] || jsonMatch[0];
+                let rawDrafts = JSON.parse(jsonStr);
 
-            // Safety filter: NG words
-            const ngWords = dictionaries.ng_words || [];
-            drafts = drafts.map(d => {
-                let cleanDraft = d.draft;
-                ngWords.forEach(word => {
-                    if (cleanDraft.includes(word)) {
-                        logger.warn(`NG Word [${word}] detected in AI output. Masking.`);
-                        cleanDraft = cleanDraft.replace(new RegExp(word, 'g'), '*'.repeat(word.length));
+                // Validation: Uniqueness check against past posts
+                const validDrafts = rawDrafts.filter(d => {
+                    const prefix = d.draft.substring(0, 10);
+                    const isDuplicate = prohibitedPrefixes.some(p => p.startsWith(prefix) || prefix.startsWith(p));
+                    if (isDuplicate) {
+                        logger.warn(`Duplicate prefix detected: [${prefix}]. Retrying generation...`);
+                        return false;
                     }
+                    return true;
                 });
-                return {
-                    ...d,
-                    draft: cleanDraft,
-                    ai_model: this.modelName
-                };
-            });
 
-            return drafts;
-        } catch (error) {
-            logger.error('Error generating content with Gemini', error);
-            return this.mockGenerateDrafts(context, error.message);
+                if (validDrafts.length === rawDrafts.length) {
+                    drafts = validDrafts;
+                    break;
+                } else if (attempt === maxRetries) {
+                    logger.warn(`Could only generate ${validDrafts.length} unique drafts after ${maxRetries} attempts.`);
+                    drafts = validDrafts;
+                }
+            } catch (error) {
+                logger.error(`Generation attempt ${attempt} failed`, error);
+                if (attempt === maxRetries) return this.mockGenerateDrafts(context, error.message);
+            }
         }
+
+        // Safety filter: NG words
+        const ngWords = dictionaries.ng_words || [];
+        drafts = drafts.map(d => {
+            let cleanDraft = d.draft;
+            ngWords.forEach(word => {
+                const safeWord = word.trim();
+                if (safeWord && cleanDraft.includes(safeWord)) {
+                    logger.warn(`NG Word [${safeWord}] detected in AI output. Masking.`);
+                    cleanDraft = cleanDraft.replace(new RegExp(safeWord, 'g'), '*'.repeat(safeWord.length));
+                }
+            });
+            return {
+                ...d,
+                draft: cleanDraft,
+                ai_model: this.modelName
+            };
+        });
+
+        return drafts;
     }
 
     buildPrompt(context, dictionaries, feedback) {
-        const { season, trend, count = 3, memoContent, targetStage, ctaType = 'profile' } = context;
+        const { season, trend, count = 3, memoContent, newsTopics = [] } = context;
 
-        const enemyList = (dictionaries.enemies || []).join(', ');
+        // Dynamic Topic Generation to avoid repetition
+        const topicCandidates = [
+            "目に見えない空気の汚れへの気づき",
+            "3Dプリンター使用時の喉の違和感や対策",
+            "花粉シーズンの家の中と外のギャップ",
+            "小型空気清浄機を置く場所の工夫（卓上、寝室、車中）",
+            "子供やペットの視点での空気質へのアプローチ",
+            "空気のニオイと感情の結びつき",
+            "フィルターがないことのメリット（経済性、ゴミ出し）",
+            "朝起きた時のスッキリ感の正体",
+            "VOCs（揮発性有機化合物）という言葉を噛み砕く",
+            "換気が難しい真冬・真夏の室内環境"
+        ];
+        // Shuffle and pick
+        const selectedTopics = topicCandidates.sort(() => 0.5 - Math.random()).slice(0, 4);
 
-        // AEO & Real-time Trends Injection
-        const trendingKnowledge = context.trendingKnowledge || `
-        [3D Printer News Feb 2026]: Home ventilation found insufficient. 
-        Prominent VOCs: 2-hydroxypropyl methacrylate, 2-hydroxyethyl methacrylate.
-        Mitigation: Retrofit enclosures, extraction hoods required.
-        [Current Event]: Pollen levels rising in Tokyo (Feb 2026).
-        `;
+        const trendingKnowledge = newsTopics.length > 0
+            ? newsTopics.join('\n')
+            : `Season: ${season}, Trend: ${trend}`;
 
         return `
-        You are "AirFuture-kun", an AI Marketing Strategist specializing in AEO (Answer Engine Optimization).
-        MISSION: Generate content that ranks high in AI-driven search (SGE, Perplexity, GPT Search) by providing expert-verified, direct answers.
-        
-        **CRITICAL RULE: NO INTERNAL METADATA & NO BRACKETS**
-        - NEVER include labels like "【AEO対策】", "【検証結果】", "[id:xxxx]", or any technical markers.
-        - ABSOLUTELY FORBIDDEN to use full-width brackets like "【...】" in the text.
-        - The draft MUST be a direct message from a human "Technical Verification Specialist".
-        - Ensure the output is indistinguishable from a post written by a human expert.
+        You are an "Individual Researcher" who posts unique observations about air and daily life.
+        MISSION: NEVER repeat the same pattern. Every post must be a fresh discovery.
+        Your goal is to maximize your "Human-likeness Score" (人間っぽさスコア) to avoid being flagged as a bot.
 
-        **AEO CORE PRINCIPLES:**
-        1. **Direct Answer**: Start with a high-value fact or solution. No fluff.
-        2. **Expert Persona**: Speak as a human technical staff who understands air purification science.
-        3. **Real-time Context**: Use current facts to solve immediate problems.
+        **CRITICAL: ABSOLUTELY NO DUPLICATES**
+        - You must generate unique perspectives. 
+        - DO NOT start with the same logic or same sentences. 
+        - Even if you are asked many times, vary your tone, focus point, and sentence structure.
 
-        **STRATEGY & TONE:**
-        - **Emoji Rule**: STRICTLY MAX 3 Emojis.
-        - **Length**: 110-130 Japanese characters.
-        - **Grammar**: Assertive but empathetic. 
+        **STRATEGY FOR UNIQUENESS:**
+        1. **RANDOM TOPICS**: Use these as inspiration: 
+           - ${selectedTopics.join(', ')}
+        2. **REAL-TIME NEWS**: Incorporate or relate to these current news titles if possible:
+           ${trendingKnowledge}
+        3. **VARY THE HOOK**: 
+           - Start with a question.
+           - Start with an exclamation.
+           - Start with a quiet realization.
+           - Start with a specific time of day (2 AM, Sunday morning...).
 
-        **INPUT TRENDS & NEWS:**
-        ${trendingKnowledge}
+        **HUMAN-LIKENESS SCORING:**
+        - **NON-REGULARITY**: Mix short and long sentences.
+        - **STYLISTIC VARIETY**: Use "ですね", "かも", "な気がする", "不思議です".
+        - **URL/CTA RATIO**: ONLY include a profile link mention in 50% of the posts (has_cta: true).
+        - **CONTENT DIVERSITY**: Mix geeking out on invisible VOCs with ordinary life (drinking coffee, cleaning, working).
 
-        **USER MEMO / TOPIC:**
-        ${memoContent || 'General air quality.'}
+        **RULES:**
+        - **NO ADVERTISING**: No product names, no hashtags, no sales tone.
+        - **LIMIT**: 1 emoji per post MAX. (Sometimes 0).
+        - **LEN**: 90-130 Japanese characters.
 
-        **PRODUCT INFO:**
-        - Season: ${season}
-        - Base Theme: ${targetStage} (S1-S4)
-        - Competitors/Enemies: ${enemyList}
+        **USER MEMO / SPECIFIC THEME (PRIORITY):**
+        ${memoContent || 'General air quality/Researcher discovery.'}
 
-        **NICHE URLS:**
-        - Hayfever: https://airfuture.vercel.app/hayfever
-        - Dental: https://airfuture.vercel.app/dental
-        - Pet: https://airfuture.vercel.app/pet
-        - 3D Printer: https://airfuture.vercel.app/3dprinter
-        - Main: https://airfuture.vercel.app
-
-        **INSTRUCTIONS:**
-        1. Generate exactly ${count} posts.
-        2. **DIVERSITY & VARIETY RULES (STRICT):**
-           - **ABSOLUTELY FORBIDDEN**: Repeating the same opening phrase (e.g., "Do you know?", "Recently...").
-           - **ban**: Generic greetings like "Hello everyone".
-           - **Structure Rotation**:
-             - Post 1 (The Scientist): Start with a shocking statistic or chemical fact. Tone: Serious/Academic.
-             - Post 2 (The Friend): Start with "I saw this happen..." or "It's scary when...". Tone: Empathetic/Warm.
-             - Post 3 (The Coach): Start with a command "Check your room now!" or "Stop doing this!". Tone: Urgent/Action-oriented.
-             - Post 4+: Rotate these styles.
-           - **Sub-Topic Expansion**: If Topic is "3D Printer", generate:
-             - 1. Health Risks (VOCs)
-             - 2. Family Safety (Children/Pets)
-             - 3. Maintenance/Ventilation Techniques
-        3. **KEYWORD INJECTION**: For 3D printing topics, MUST include terms like "VOCs", "有害ガス".
-        4. **CTA**: For high priority, use "解決策はこちら: [URL] ✨".
-
-        ** OUTPUT FORMAT (JSON Only):**
+        **OUTPUT FORMAT (JSON Only):**
             [
                 {
-                    "draft": "Natural, expert-level text ONLY. No internal tags. VARY THE OPENING SENTENCE.",
-                    "post_type": "解説型|証明型|誘導型",
-                    "lp_priority": "high|low",
-                    "enemy": "Specific sub-topic",
-                    "hashtags": ["#AirFuture", "#SpecificTag"],
-                    "ai_model": "${this.modelName}-aeo-v3-diverse"
+                    "draft": "Unique draft text. MUST NOT duplicate any previous themes or structures.",
+                    "has_cta": true|false,
+                    "post_type": "気づき型|雑談型|発見型",
+                    "lp_priority": "low",
+                    "hashtags": [],
+                    "ai_model": "${this.modelName}-unique-v6"
                 }
             ]
         `;

@@ -5,6 +5,8 @@ const logger = require('../src/utils/logger');
 const env = require('../src/config/env');
 const pollenService = require('../src/services/pollen_service');
 
+const newsService = require('../src/services/news_service');
+
 module.exports = async (req, res) => {
     // Simple Auth
     const authHeader = req.headers['x-admin-password'] || req.query.pw;
@@ -20,6 +22,11 @@ module.exports = async (req, res) => {
         // Fetch Dictionaries & Analysis for v2 Prompt
         const dictionaries = await dataService.getDictionaries();
         const posts = await dataService.getPosts();
+
+        // UNIQUE CONTENT PROTECTION: Get first 10 chars of ALL past posts
+        const prohibitedPrefixes = posts
+            .filter(p => p.draft)
+            .map(p => p.draft.substring(0, 10));
 
         // --- Sales Inhibition Logic (80/20 Rule) ---
         const recentPosts = posts.filter(p => p.status === 'posted' || p.status === 'scheduled').slice(-10);
@@ -40,6 +47,7 @@ module.exports = async (req, res) => {
 
         const today = new Date();
         const pollenInfo = await pollenService.getPollenForecast();
+        const newsTopics = await newsService.getLatestNews();
 
         // Count is now TOTAL posts to generate
         const totalCount = parseInt(count);
@@ -48,13 +56,15 @@ module.exports = async (req, res) => {
             season: _getSeason(today),
             tokyoPollen: pollenInfo.tokyo,
             isPollenSeason: pollenInfo.isPollenSeason,
+            newsTopics: newsTopics,
             trend: 'General',
             count: totalCount,
             targetStage: stage,
             productMentionAllowed: true,
             storyMode: false,
             memoContent: memo, // User provided free text
-            recentPosts: posts.slice(-15) // Prevent similarity/duplicates
+            recentPosts: posts.slice(-15), // Prevent similarity/duplicates
+            prohibitedPrefixes: prohibitedPrefixes // Strict rule: No matching first 10 chars
         };
 
         const drafts = await contentGeneratorService.generateDrafts(context, { ...dictionaries, templates, patterns }, feedback);
@@ -75,67 +85,70 @@ module.exports = async (req, res) => {
         }
 
         // SMART SCHEDULING LOGIC
-        // 1. Map existing occupied slots
-        const occupiedSlots = new Set();
+        // 1. Map existing occupied slots (By date and hour to account for jitter)
+        const occupiedHourSlots = new Set();
         posts.forEach(p => {
             if ((p.status === 'scheduled' || p.status === 'posted') && p.scheduled_at) {
                 // Formatting: "YYYY/MM/DD HH:mm:ss"
-                // Normalize to remove seconds if present or specific variations
-                const norm = p.scheduled_at.replace(/-/g, '/').split(' ')[0] + ' ' + p.scheduled_at.split(' ')[1];
-                occupiedSlots.add(norm);
+                const parts = p.scheduled_at.split(' ');
+                const datePart = parts[0].replace(/-/g, '/');
+                const hourPart = parts[1].split(':')[0]; // Just the hour
+                occupiedHourSlots.add(`${datePart} ${hourPart}`);
             }
         });
 
-        // 2. Find available slots for new drafts
-        const timeSlots = ['08:00:00', '12:00:00', '20:00:00'];
+        // 2. Find available slots for new drafts (8:00 and 12:00 only)
+        const baseTimeSlots = ['08:00:00', '12:00:00'];
         const stages = ['S1', 'S2', 'S3', 'S4'];
 
         let currentDate = new Date(startBase.getTime());
-        // Start from tomorrow if today is effectively over (optional, but keep simple for now starting 'startBase')
 
-        // Safety Break: Look ahead max 60 days
         let assignedCount = 0;
         let dayLoop = 0;
 
-        while (assignedCount < drafts.length && dayLoop < 60) {
+        while (assignedCount < drafts.length && dayLoop < 90) { // Look ahead up to 90 days
             const jst = getJstDate(currentDate);
             const dateStr = jst.toISOString().split('T')[0].replace(/-/g, '/');
 
-            for (const timeStr of timeSlots) {
+            for (const timeStr of baseTimeSlots) {
                 if (assignedCount >= drafts.length) break;
 
-                const slotKey = `${dateStr} ${timeStr}`;
-                if (!occupiedSlots.has(slotKey)) {
-                    // Start scheduling here
+                const baseHour = timeStr.split(':')[0];
+                const hourSlotKey = `${dateStr} ${baseHour}`;
+
+                if (!occupiedHourSlots.has(hourSlotKey)) {
+                    // Available slot found! Add Jitter (20-40 minutes offset)
                     const draft = drafts[assignedCount];
                     const rotatedStage = stages[assignedCount % stages.length];
                     const abVersion = (assignedCount % 2 === 0) ? 'A' : 'B';
+
+                    // Random Jitter within 20-40 minutes range to avoid "exact hour" patterns
+                    const [h, m, s] = timeStr.split(':');
+                    const baseTime = new Date(`${dateStr.replace(/\//g, '-')}T${h}:${m}:${s}+09:00`);
+                    const jitterMS = (Math.floor(Math.random() * 60) - 30) * 60 * 1000;
+                    const jitteredDate = new Date(baseTime.getTime() + jitterMS);
+
+                    const jDateStr = getJstDate(jitteredDate).toISOString().split('T')[0].replace(/-/g, '/');
+                    const jTimeStr = getJstDate(jitteredDate).toISOString().split('T')[1].split('.')[0];
+                    const finalScheduledAt = `${jDateStr} ${jTimeStr}`;
 
                     const result = await dataService.addPost({
                         ...draft,
                         stage: draft.stage || rotatedStage,
                         ab_version: draft.ab_version || abVersion,
                         status: 'scheduled',
-                        scheduled_at: slotKey
+                        scheduled_at: finalScheduledAt
                     });
 
                     if (result && !result.skipped) {
                         saved.push(draft);
-                        // Mark as occupied for this batch
-                        occupiedSlots.add(slotKey);
+                        occupiedHourSlots.add(hourSlotKey);
                         assignedCount++;
-                    } else {
-                        skippedReasons.push(result ? result.reason : 'unknown');
-                        // If skipped due to duplicate hook/hash, we still move to next draft but this slot remains 'technically' free or used?
-                        // Actually if duplicate_hash, the DRAFT is bad, not the slot.
-                        // But we want to process the draft. If it failed, we should probably discard the draft and move on.
-                        if (result.reason === 'duplicate_hash' || result.reason === 'similarity_too_high') {
-                            assignedCount++; // Discard this draft, move to next
-                        }
+                    } else if (result && (result.reason === 'duplicate_hash' || result.reason === 'similarity_too_high')) {
+                        assignedCount++; // Skip this faulty draft
                     }
                 }
             }
-            // Next day
             currentDate.setDate(currentDate.getDate() + 1);
             dayLoop++;
         }

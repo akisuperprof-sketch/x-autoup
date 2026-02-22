@@ -5,6 +5,7 @@ const contentGeneratorService = require('./content_generator_service');
 const logger = require('../utils/logger');
 const axios = require('axios');
 const env = require('../config/env');
+const newsService = require('./news_service');
 const pollenService = require('./pollen_service');
 const mediaMappingService = require('./media_mapping_service');
 
@@ -179,7 +180,7 @@ class SchedulerService {
 
             logger.info(`[CRON] No due posts to process. Current JST Hour: ${hourJST}`);
 
-            if ([8, 12, 20].includes(hourJST)) {
+            if ([8, 12].includes(hourJST)) {
                 // Safety: Check if we ALREADY posted for this specific hour slot to avoid duplicate emergency gens (especially with 10-min crons)
                 const alreadyPostedThisSlot = posts.some(p => {
                     const scheduledAt = this._parseJST(p.scheduled_at);
@@ -219,17 +220,10 @@ class SchedulerService {
                         const emergencyPost = drafts[0];
                         logger.info(`[EMERGENCY] Posting newly generated content: ${emergencyPost.draft.substring(0, 20)}...`);
 
-                        const randomSeconds = Math.floor(Math.random() * 60);
-                        const randomMins = Math.floor(Math.random() * 5); // Add minor offset even for emergency
-                        const scheduledTime = this._formatJST(nowJST).split(' ')[1]; // Current time like 08:02:15
-
-                        let mediaIds = [];
-                        // Media selection hook (for future files)
-                        const media = mediaMappingService.getMediaForText(emergencyPost.draft, nowJST);
-                        if (media) {
-                            logger.info(`[EMERGENCY] Media suggested: ${media.filePath} (${media.type})`);
-                            // mediaIds = await xService.uploadMediaFromFile(media.filePath); // Prototype hook
-                        }
+                        // Anti-Bot Operation Randomness: Add 1-5 seconds random delay before API call
+                        const opJitter = Math.floor(Math.random() * 4000) + 1000;
+                        logger.info(`[ANTI-BOT] Adding emergency operational jitter: ${opJitter}ms before posting.`);
+                        await new Promise(resolve => setTimeout(resolve, opJitter));
 
                         const result = await xService.postTweet(emergencyPost.draft, mediaIds);
 
@@ -271,6 +265,12 @@ class SchedulerService {
                 }
 
                 logger.info(`Posting tweet ID: ${post.id}`);
+
+                // Anti-Bot Operation Randomness: Add 1-45 seconds random delay before API call
+                // This breaks the correlation with Cron trigger time at the second level
+                const opJitter = Math.floor(Math.random() * 4000) + 1000;
+                logger.info(`[ANTI-BOT] Adding operational jitter: ${opJitter}ms before posting.`);
+                await new Promise(resolve => setTimeout(resolve, opJitter));
 
                 let mediaIds = [];
                 const media = mediaMappingService.getMediaForText(post.draft, nowJST);
@@ -336,8 +336,9 @@ class SchedulerService {
 
             // Look ahead for Today (D+0), Tomorrow (D+1) and Day after tomorrow (D+2)
             const targetDays = [0, 1, 2];
-            const timeSlots = ['08:00:00', '12:00:00', '20:00:00'];
-            const stages = ['S1', 'S2', 'S3', 'S1', 'S2', 'S4']; // Stage rotation candidates
+            // Morning (07:00-09:00) and Lunch (11:00-13:00) - only 2 slots
+            const timeSlots = ['08:00:00', '12:00:00'];
+            const stages = ['S1', 'S2', 'S4', 'S1', 'S2', 'S3']; // Stage rotation candidates
 
             for (const offset of targetDays) {
                 // FIXED: Use JST for date calculation
@@ -347,7 +348,7 @@ class SchedulerService {
                 targetDate.setDate(targetDate.getDate() + offset);
                 const targetStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' }).replace(/-/g, '/');
 
-                // Check if posts already exist for this day (at least 3 recommended)
+                // Check if posts already exist for this day (at least 2 recommended)
                 const existingInDay = posts.filter(p => {
                     if (!p.scheduled_at || !['scheduled', 'posted', 'retry'].includes(p.status)) return false;
                     const pDate = this._parseJST(p.scheduled_at);
@@ -356,50 +357,73 @@ class SchedulerService {
                         pDate.getDate() === targetDate.getDate();
                 });
 
-                if (existingInDay.length < count) {
+                if (existingInDay.length < 2) {
                     const existingHours = existingInDay.map(p => this._parseJST(p.scheduled_at).getHours());
 
                     const missingSlots = timeSlots.filter(slot => {
                         const hour = parseInt(slot.split(':')[0]);
                         return !existingHours.includes(hour);
-                    }).slice(0, count - existingInDay.length);
+                    });
 
                     if (missingSlots.length > 0) {
-                        logger.info(`[AUTO-GEN] Found ${existingInDay.length}/${count} posts for ${targetStr}. Filling ${missingSlots.length} missing slots.`);
-                        await this.notifyWebhook(`⚡ 【補充型AI生成】\n${targetStr}の予約が不足（${existingInDay.length}/${count}）していたため、AIが欠けている時間枠（${missingSlots.join(', ')}）を生成しました。`);
+                        logger.info(`[AUTO-GEN] Found ${existingInDay.length}/2 posts for ${targetStr}. Filling ${missingSlots.length} missing slots.`);
 
                         const dayOfWeek = targetDate.getDay();
                         const baseStage = ['S5', 'S1', 'S2', 'S3', 'S1', 'S2', 'S4'][dayOfWeek];
 
-                        const recentPosts = posts.slice(-10); // Provide last 10 for diversity
+                        const recentPosts = posts.slice(-10);
                         const pollenInfo = await pollenService.getPollenForecast();
+                        const newsTopics = await newsService.getLatestNews();
+
+                        // Collect ALL past prefixes for uniqueness check
+                        const prohibitedPrefixes = posts
+                            .filter(p => p.draft)
+                            .map(p => p.draft.substring(0, 10));
+
                         const context = {
                             season: this._getSeason(targetDate),
                             tokyoPollen: pollenInfo.tokyo,
                             isPollenSeason: pollenInfo.isPollenSeason,
+                            newsTopics: newsTopics,
                             trend: 'Automated Daily Fill-in',
                             count: missingSlots.length,
                             targetStage: baseStage,
                             productMentionAllowed: true,
-                            recentPosts: recentPosts
+                            recentPosts: recentPosts,
+                            prohibitedPrefixes: prohibitedPrefixes
                         };
                         const drafts = await contentGeneratorService.generateDrafts(context, { ...dictionaries, templates, patterns });
 
                         for (let i = 0; i < drafts.length; i++) {
-                            const time = missingSlots[i] || '12:00:00';
+                            const time = missingSlots[i] || '08:00:00';
                             const rotatedStage = stages[(dayOfWeek + i) % stages.length];
                             const abVersion = i % 2 === 0 ? 'A' : 'B';
 
-                            // Level 2: Time Jitter (Add 0-7 minutes random delay)
+                            // Extreme Time Jitter for natural randomness
+                            // Slot 1 (Morning): 08:00 + random(-60 to +60 minutes) -> 07:00 - 09:00
+                            // Slot 2 (Lunch/Afternoon): 13:00 + random(-120 to +120 minutes) -> 11:00 - 15:00
+                            const baseHour = parseInt(time.split(':')[0]);
                             const [h, m, s] = time.split(':');
                             const baseTime = new Date(`${targetStr.replace(/\//g, '-')}T${h}:${m}:${s}+09:00`);
-                            const jitteredDate = new Date(baseTime.getTime() + Math.floor(Math.random() * 8 * 60 * 1000));
+
+                            let jitterMS;
+                            if (baseHour === 8) {
+                                jitterMS = (Math.floor(Math.random() * 121) - 60) * 60 * 1000;
+                            } else {
+                                // Shift base to 13:00 for the second slot to give more afternoon room
+                                const lunchBase = new Date(baseTime.getTime() + 60 * 60 * 1000);
+                                jitterMS = (Math.floor(Math.random() * 241) - 120) * 60 * 1000;
+                                baseTime.setTime(lunchBase.getTime());
+                            }
+
+                            const jitteredDate = new Date(baseTime.getTime() + jitterMS);
                             const jitteredTime = this._formatJST(jitteredDate).split(' ')[1];
+                            const jitteredDateStr = this._formatJST(jitteredDate).split(' ')[0].replace(/-/g, '/');
 
                             const result = await dataService.addPost({
                                 ...drafts[i],
                                 status: 'scheduled',
-                                scheduled_at: `${targetStr} ${jitteredTime}`,
+                                scheduled_at: `${jitteredDateStr} ${jitteredTime}`,
                                 stage: drafts[i].stage || rotatedStage,
                                 ab_version: drafts[i].ab_version || abVersion
                             });
