@@ -148,8 +148,10 @@ class ContentGeneratorService {
         - **URL/CTA RATIO**: ONLY include a profile link mention in 50% of the posts (has_cta: true).
         - **CONTENT DIVERSITY**: Mix geeking out on invisible VOCs with ordinary life (drinking coffee, cleaning, working).
 
-        **RULES:**
-        - **NO ADVERTISING**: No product names, no hashtags, no sales tone.
+        **RULES (ABSOLUTE):**
+        - **JAPANESE ONLY**: Use ONLY Japanese (Kanji, Hiragana, Katakana). DO NOT use Cyrillic, Russian, or any other foreign languages except for essential technical terms in English.
+        - **NO HASHTAGS**: NEVER include '#' or hashtags. This is a critical rule for human-likeness.
+        - **NO ADVERTISING**: No product names, no sales tone.
         - **LIMIT**: 1 emoji per post MAX. (Sometimes 0).
         - **LEN**: 90-130 Japanese characters.
 
