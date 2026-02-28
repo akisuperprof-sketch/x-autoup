@@ -52,8 +52,15 @@ class ContentGeneratorService {
                 const jsonStr = jsonMatch[1] || jsonMatch[0];
                 let rawDrafts = JSON.parse(jsonStr);
 
-                // Validation: Uniqueness check against past posts
+                // Validation: Uniqueness check against past posts AND placeholder sanitization
                 const validDrafts = rawDrafts.filter(d => {
+                    // 1. Placeholder check: Reject ANY drafts with brackets like [URL] or [YourProfileURL]
+                    if (d.draft.includes('[') || d.draft.includes(']') || d.draft.includes('ProfileURL')) {
+                        logger.warn(`Placeholder detected in draft: ${d.draft}. Retrying...`);
+                        return false;
+                    }
+
+                    // 2. Uniqueness check
                     const prefix = d.draft.substring(0, 10);
                     const isDuplicate = prohibitedPrefixes.some(p => p.startsWith(prefix) || prefix.startsWith(p));
                     if (isDuplicate) {
@@ -67,7 +74,8 @@ class ContentGeneratorService {
                     drafts = validDrafts;
                     break;
                 } else if (attempt === maxRetries) {
-                    logger.warn(`Could only generate ${validDrafts.length} unique drafts after ${maxRetries} attempts.`);
+                    logger.warn(`Could only generate ${validDrafts.length} high-quality unique drafts after ${maxRetries} attempts.`);
+                    // Fallback filtering to at least return what we have that is clean
                     drafts = validDrafts;
                 }
             } catch (error) {
@@ -76,10 +84,13 @@ class ContentGeneratorService {
             }
         }
 
-        // Safety filter: NG words
+        // Safety filter & Sanitization
         const ngWords = dictionaries.ng_words || [];
         drafts = drafts.map(d => {
             let cleanDraft = d.draft;
+            // Additional fallback: Force remove any suspected placeholder pattern if any reached here
+            cleanDraft = cleanDraft.replace(/\[.*?\]/g, '').replace(/[:：]\s*$/g, '').trim();
+
             ngWords.forEach(word => {
                 const safeWord = word.trim();
                 if (safeWord && cleanDraft.includes(safeWord)) {
@@ -126,10 +137,29 @@ class ContentGeneratorService {
         MISSION: NEVER repeat the same pattern. Every post must be a fresh discovery.
         Your goal is to maximize your "Human-likeness Score" (人間っぽさスコア) to avoid being flagged as a bot.
 
+        **SCORING CRITERIA FOR HUMAN-LIKENESS:**
+        - **NON-REGULARITY**: Mix short and long sentences.
+        - **STYLISTIC VARIETY**: Use "ですね", "かも", "な気がする", "不思議です".
+        - **URL/CTA RATIO (CRITICAL)**: 
+            - In exactly 50% of the posts (has_cta: true), include a subtle mention of your profile link in natural Japanese.
+            - In the other 50% (has_cta: false), include NO mention of any links or profiles. Just end naturally.
+        - **CONTENT DIVERSITY**: Mix geeking out on invisible VOCs with ordinary life (drinking coffee, cleaning, working).
+
         **CRITICAL: ABSOLUTELY NO DUPLICATES**
         - You must generate ${count} unique perspectives. 
         - DO NOT start with the same logic or same sentences. 
-        - Even if you are asked many times, vary your tone, focus point, and sentence structure.
+
+        **RULES (ABSOLUTE):**
+        - **NO PLACEHOLDERS**: NEVER use "[URL]", "[YourProfileURL]", or any bracketed labels. 
+        - **CTA Phrasing (Japanese Only)**: When including a CTA, use natural phrases such as:
+            - "プロフィールのURLに置いておきます。"
+            - "詳細はプロフィールのリンクを見てください。"
+            - "プロフのリンク先に詳しいメモをまとめました。"
+        - **JAPANESE ONLY**: Use ONLY Japanese. (No Russian/Cyrillic).
+        - **NO HASHTAGS**: NEVER include '#' or hashtags. 
+        - **NO ADVERTISING**: No product names, no sales tone.
+        - **LIMIT**: 1 emoji per post MAX. (Sometimes 0).
+        - **LEN**: 90-130 Japanese characters.
 
         **STRATEGY FOR UNIQUENESS:**
         1. **RANDOM TOPICS**: Use these as inspiration: 
@@ -137,23 +167,7 @@ class ContentGeneratorService {
         2. **REAL-TIME NEWS**: Incorporate or relate to these current news titles if possible:
            ${trendingKnowledge}
         3. **VARY THE HOOK**: 
-           - Start with a question.
-           - Start with an exclamation.
-           - Start with a quiet realization.
-           - Start with a specific time of day (2 AM, Sunday morning...).
-
-        **HUMAN-LIKENESS SCORING:**
-        - **NON-REGULARITY**: Mix short and long sentences.
-        - **STYLISTIC VARIETY**: Use "ですね", "かも", "な気がする", "不思議です".
-        - **URL/CTA RATIO**: ONLY include a profile link mention in 50% of the posts (has_cta: true).
-        - **CONTENT DIVERSITY**: Mix geeking out on invisible VOCs with ordinary life (drinking coffee, cleaning, working).
-
-        **RULES (ABSOLUTE):**
-        - **JAPANESE ONLY**: Use ONLY Japanese (Kanji, Hiragana, Katakana). DO NOT use Cyrillic, Russian, or any other foreign languages except for essential technical terms in English.
-        - **NO HASHTAGS**: NEVER include '#' or hashtags. This is a critical rule for human-likeness.
-        - **NO ADVERTISING**: No product names, no sales tone.
-        - **LIMIT**: 1 emoji per post MAX. (Sometimes 0).
-        - **LEN**: 90-130 Japanese characters.
+           - Start with a question, an exclamation, or a quiet realization.
 
         **USER MEMO / SPECIFIC THEME (PRIORITY):**
         ${memoContent || 'General air quality/Researcher discovery.'}
@@ -162,12 +176,12 @@ class ContentGeneratorService {
         MUST return valid JSON array containing exactly ${count} objects.
             [
                 {
-                    "draft": "Unique draft text. MUST NOT duplicate any previous themes or structures.",
+                    "draft": "Unique draft text strictly in Japanese. No placeholders.",
                     "has_cta": true|false,
                     "post_type": "気づき型|雑談型|発見型",
                     "lp_priority": "low",
                     "hashtags": [],
-                    "ai_model": "gemini-2.0-flash"
+                    "ai_model": "${this.modelName}-unique-v6"
                 }
             ]
         `;

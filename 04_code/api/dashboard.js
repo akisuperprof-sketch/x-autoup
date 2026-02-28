@@ -52,8 +52,8 @@ module.exports = async (req, res) => {
             try {
                 logRows = await googleSheetService.getRows('logs');
                 for (const row of logRows) {
-                    const ts_str = row.get('ts') || row.get('timestamp');
-                    if (!ts_str || ts_str === '記録日時') continue;
+                    const ts_str = row.get('ts') || row.get('timestamp') || row.get('記録日時');
+                    if (!ts_str || ts_str === '記録日時' || ts_str === 'timestamp' || ts_str === 'ts') continue;
 
                     const row_pid = (row.get('post_id') || row.get('pid') || '').trim();
                     const action = row.get('action');

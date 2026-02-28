@@ -240,132 +240,92 @@ class DataService {
         }
     }
 
-    async logJourney(journeyData) {
-        if (!this.useSheets) return;
-        try {
-            const headers = ['timestamp', 'visitor_id', 'entry_page', 'referrer', 'clicks', 'conversions', 'path', 'duration', 'ab_version', 'post_id'];
-            await googleSheetService.ensureSheet('journeys', headers);
-            await googleSheetService.addRow('journeys', {
-                ...journeyData,
-                timestamp: new Date().toISOString(),
-                path: JSON.stringify(journeyData.path || [])
-            });
-        } catch (e) {
-            logger.error('Error logging journey', e);
+    // --- Tracking & Event Logs (v6.4 restored) ---
+
+    async addEventLog(action, data) {
+        const now = new Date();
+        const JST_OFFSET = 9 * 60 * 60 * 1000;
+        const tsJST = new Date(now.getTime() + JST_OFFSET).toISOString().replace('T', ' ').substring(0, 19);
+
+        const visitorId = data.visitor_id || this.getIpHash(data.ip || '').substring(0, 8);
+        const lpName = this.getLpName(data.lp_id);
+        const isDev = this.isDeveloper(data.ua, data.ip);
+
+        // Map to ALL possible header names seen in different dashboard/sheet versions
+        const logEntry = {
+            '記録日時': tsJST,
+            timestamp: tsJST,
+            ts: tsJST,
+            action: action,
+            event_type: action,
+            pid: data.pid || 'direct',
+            post_id: data.pid || 'direct',
+            lp_id: data.lp_id || 'default_lp',
+            lp_name: lpName,
+            visitor_id: visitorId,
+            visitor_label: `訪問者 #${parseInt(visitorId, 16) % 1000 || 0}`,
+            ref: (data.ref || '').substring(0, 200),
+            ua: (data.ua || '').substring(0, 200),
+            ip: data.ip || '',
+            is_bot: data.is_bot ? 'TRUE' : 'FALSE',
+            is_dev: isDev ? 'TRUE' : 'FALSE',
+            visitor_style: isDev ? '開発者' : (data.is_bot ? 'Bot' : '一般'),
+            revenue: data.revenue || 0,
+            dest_url: data.dest_url || ''
+        };
+
+        if (this.useSheets) {
+            try {
+                const headers = [
+                    '記録日時', 'timestamp', 'ts', 'action', 'pid', 'lp_id', 'ref', 'ua', 'ip',
+                    'is_bot', 'is_dev', 'visitor_id', 'lp_name', 'visitor_style',
+                    'revenue', 'dest_url'
+                ];
+                await googleSheetService.ensureSheet('logs', headers);
+                await googleSheetService.addRow('logs', logEntry);
+            } catch (e) {
+                logger.error('Failed to write event log to Sheets', e.message);
+            }
+        } else {
+            try {
+                const logs = await this._getLocalLogs();
+                logs.push(logEntry);
+                await fs.writeFile(LOGS_FILE, JSON.stringify(logs.slice(-500), null, 2));
+            } catch (e) { }
         }
     }
 
-    async getDictionaries() {
-        if (!this.useSheets) return { enemies: [], tags: [], trends: [], ng_words: [], safe_phrases: [] };
+    async _getLocalLogs() {
         try {
-            const rows = await googleSheetService.getRows('dictionaries');
-            const dict = { enemies: [], tags: [], trends: [], ng_words: [], safe_phrases: [] };
-            rows.forEach(r => {
-                const enemy = r.get('enemy_list');
-                const tag = r.get('permanent_tags');
-                const trend = r.get('trend_candidates');
-                const ng = r.get('ng_words');
-                const safe = r.get('safe_phrases');
-                if (enemy) dict.enemies.push(enemy);
-                if (tag) dict.tags.push(tag);
-                if (trend) dict.trends.push(trend);
-                if (ng) dict.ng_words.push(ng);
-                if (safe) dict.safe_phrases.push(safe);
-            });
-            return dict;
+            await fs.mkdir(DATA_DIR, { recursive: true }).catch(() => { });
+            const data = await fs.readFile(LOGS_FILE, 'utf8').catch(() => '[]');
+            return JSON.parse(data);
         } catch (e) {
-            logger.warn('Error fetching dictionaries sheet', e.message);
-            return { enemies: [], tags: [], trends: [], ng_words: [], safe_phrases: [] };
-        }
-    }
-
-    async getContentTemplates() {
-        if (!this.useSheets) return [];
-        try {
-            const rows = await googleSheetService.getRows('content_templates');
-            return rows.map(r => ({
-                id: r.get('id'),
-                name: r.get('name'),
-                type: r.get('type'),
-                template_text: r.get('template_text'),
-                usage_notes: r.get('usage_notes')
-            }));
-        } catch (e) {
-            logger.warn('Error fetching content_templates', e.message);
             return [];
         }
     }
 
-    async getPostPatterns() {
-        if (!this.useSheets) return [];
-        try {
-            const rows = await googleSheetService.getRows('post_patterns');
-            return rows.map(r => ({
-                id: r.get('id'),
-                pattern_name: r.get('pattern_name'),
-                rule_description: r.get('rule_description'),
-                active: r.get('active') === 'TRUE' || r.get('active') === '1'
-            }));
-        } catch (e) {
-            logger.warn('Error fetching post_patterns', e.message);
-            return [];
-        }
+    isBot(ua, ref) {
+        if (!ua) return true;
+        const botPatterns = [
+            'bot', 'spider', 'crawl', 'slurp', 'google', 'bing', 'yandex', 'baidu',
+            'facebook', 'twitter', 'whatsapp', 'telegram', 'slack', 'discord',
+            'headless', 'phantom', 'puppeteer', 'vercel', 'screenshot'
+        ];
+        const lowerUA = ua.toLowerCase();
+        return botPatterns.some(p => lowerUA.includes(p));
     }
 
-    async acquireLock(key, ttlSeconds = 300) {
-        if (!this.useSheets) return true;
-        try {
-            const rows = await googleSheetService.getRows('locks');
-            const row = rows.find(r => r.get('key') === key);
-            const now = new Date();
-            if (row) {
-                const expiresAt = new Date(row.get('expires_at'));
-                if (expiresAt.getTime() > now.getTime()) return false;
-                row.set('locked_at', now.toISOString());
-                row.set('expires_at', new Date(now.getTime() + ttlSeconds * 1000).toISOString());
-                await row.save();
-                return true;
-            } else {
-                await googleSheetService.addRow('locks', {
-                    key: key,
-                    locked_at: now.toISOString(),
-                    expires_at: new Date(now.getTime() + ttlSeconds * 1000).toISOString()
-                });
-                return true;
-            }
-        } catch (e) {
-            logger.error('Error acquiring lock', e);
-            return false;
-        }
+    isDeveloper(ua, ip) {
+        if (!ua) return false;
+        // Simple logic: if UA contains specific dev triggers or if IP is a known admin IP
+        // For now, based on dashboard: strings containing "管理者" or "開発者"
+        return ua.includes('Postman') || ua.includes('Insomnia') || ua.includes('AdminConsole');
     }
 
-    async releaseLock(key) {
-        if (!this.useSheets) return;
-        try {
-            const rows = await googleSheetService.getRows('locks');
-            const row = rows.find(r => r.get('key') === key);
-            if (row) {
-                row.set('expires_at', new Date(0).toISOString());
-                await row.save();
-            }
-        } catch (e) { }
-    }
-
-    async logCron(jobName, status, duration = 0, error = '') {
-        if (!this.useSheets) return;
-        try {
-            const headers = ['timestamp', 'job_name', 'status', 'duration_ms', 'error_log'];
-            await googleSheetService.ensureSheet('cron_logs', headers);
-            await googleSheetService.addRow('cron_logs', {
-                timestamp: new Date().toISOString(),
-                job_name: jobName,
-                status: status,
-                duration_ms: duration,
-                error_log: error
-            });
-        } catch (e) {
-            logger.error('Error logging cron', e);
-        }
+    getIpHash(ip) {
+        if (!ip) return 'anonymous';
+        return crypto.createHash('md5').update(ip).digest('hex');
     }
 
     getLpName(lp_id) {
@@ -401,3 +361,4 @@ class DataService {
 }
 
 module.exports = new DataService();
+
