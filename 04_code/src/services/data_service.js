@@ -358,6 +358,83 @@ class DataService {
             return fallback;
         }
     }
+    async acquireLock(key, ttlSeconds = 60) {
+        if (this.useSheets) {
+            try {
+                const sheet = await googleSheetService.ensureSheet('locks', ['key', 'expires_at']);
+                const rows = await sheet.getRows();
+                const now = new Date();
+                const row = rows.find(r => (r.get('key') || r.get('c')) === key);
+
+                if (row) {
+                    const expiresAt = new Date(row.get('expires_at'));
+                    if (expiresAt > now) {
+                        return false; // Lock still valid
+                    }
+                    row.set('expires_at', new Date(now.getTime() + ttlSeconds * 1000).toISOString());
+                    await row.save();
+                    return true;
+                } else {
+                    await sheet.addRow({
+                        key,
+                        expires_at: new Date(now.getTime() + ttlSeconds * 1000).toISOString()
+                    });
+                    return true;
+                }
+            } catch (e) {
+                logger.error('Lock acquisition failed in Sheets', e);
+                return true;
+            }
+        }
+        return true;
+    }
+
+    async releaseLock(key) {
+        if (this.useSheets) {
+            try {
+                const sheet = await googleSheetService.ensureSheet('locks', ['key', 'expires_at']);
+                const rows = await sheet.getRows();
+                const row = rows.find(r => (r.get('key') || r.get('c')) === key);
+                if (row) {
+                    row.set('expires_at', new Date(0).toISOString());
+                    await row.save();
+                }
+            } catch (e) { }
+        }
+    }
+
+    async addCronLog(log) {
+        const now = new Date();
+        const JST_OFFSET = 9 * 60 * 60 * 1000;
+        const tsJST = new Date(now.getTime() + JST_OFFSET).toISOString().replace('T', ' ').substring(0, 19);
+
+        const entry = {
+            run_id: `run_${Date.now()}`,
+            timestamp: tsJST,
+            ts: tsJST,
+            action: log.action,
+            status: log.status,
+            duration_ms: log.duration_ms || 0,
+            processed_count: log.processed_count || 0,
+            success_count: log.success_count || 0,
+            failed_count: log.failed_count || 0,
+            skipped_count: log.skipped_count || 0,
+            error: log.error || ''
+        };
+
+        if (this.useSheets) {
+            try {
+                const headers = [
+                    'run_id', 'timestamp', 'ts', 'action', 'status', 'duration_ms',
+                    'processed_count', 'success_count', 'failed_count', 'skipped_count', 'error'
+                ];
+                await googleSheetService.ensureSheet('cron_logs', headers);
+                await googleSheetService.addRow('cron_logs', entry);
+            } catch (e) {
+                logger.error('Failed to log cron result to Sheets', e);
+            }
+        }
+    }
 }
 
 module.exports = new DataService();

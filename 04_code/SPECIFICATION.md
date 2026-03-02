@@ -1,4 +1,4 @@
-# AirFuture X-Operator System Specification v6.2 (Self-Sustaining Max)
+# AirFuture X-Operator System Specification v6.5 (Sanctuary Guard)
 
 ## 1. 目的 (Core Mission)
 X（Twitter）のアルゴリズムにおける「人間っぽさスコア（Human-likeness Score）」を最大化し、スパム判定によるシャドウバンを回避しながら、プロフィール経由でのLP流入を継続させること。
@@ -62,7 +62,17 @@ X（Twitter）のアルゴリズムにおける「人間っぽさスコア（Hum
     - **テーマ分け**: 作戦系（上段）は **インディゴ・ブルー**、分析系（下段）は **エメラルド・グリーン** で視覚的に分離。
     - **日次PV水位マトリクス**: 直近7日間のトラフィックを「日次」で集計し、エリアチャートで可視化。
 
-### 2.4 ステータス管理仕様 (Status Management)
+### 2.4 計測の聖域化 (Analytics Sanctuary)
+計測機能（トラッキング）は、本システムの運用価値そのものである。以下のロジックは「不可侵」であり、いかなる機能追加時も維持されなければならない。
+
+- **不変のメソッド群**: `src/services/data_service.js` における以下の定義を固定。
+    - `addEventLog(action, data)`: スプレッドシートの `logs` シートへ、適切なJST時刻と訪問者IDを紐付けて保存する全ログのゲートウェイ。
+    - `isBot(ua, ref)`: 各種ボット・クローラーを判定し、`logs` に記録する機能。
+    - `getIpHash(ip)`: 訪問者のプライバシーを守りつつ、同一性を維持するためのMD5ハッシュ化。
+- **後方互換性**: スプレッドシート上のヘッダー名 `記録日時`, `timestamp`, `ts` などを、新旧ダッシュボードのどちらからでも読み取れるように並行記録し続けること。
+- **ガードレール**: 生成AIや他のエージェントに対し、`data_service.js` 内のこのセクションを「リファクタリングで削除」することを、ガバナンスレベルで**最重要の禁止事項**とする。
+
+### 2.5 ステータス管理仕様 (Status Management)
 スプレッドシートの `status` 列により、各記事の挙動を制御する。
 - **`scheduled`**: 配信予約中（正常な投稿対象）。
 - **`posted`**: 配信完了。

@@ -139,16 +139,16 @@ class SchedulerService {
         const uniqueSlots = [];
         const filteredToPost = toPost.filter(post => {
             const scheduledAt = this._parseJST(post.scheduled_at);
-            const slotKey = `${scheduledAt.getFullYear()}-${scheduledAt.getMonth()}-${scheduledAt.getDate()}-${scheduledAt.getHours()}`;
+            const slotKey = `${scheduledAt.getUTCFullYear()}-${scheduledAt.getUTCMonth()}-${scheduledAt.getUTCDate()}-${scheduledAt.getUTCHours()}`;
 
             // Check if we already have a 'posted' item for this slot in the database
             const alreadyPostedThisSlot = posts.some(p => {
+                if (p.status !== 'posted') return false;
                 const pScheduledAt = this._parseJST(p.scheduled_at);
-                return p.status === 'posted' &&
-                    pScheduledAt.getFullYear() === scheduledAt.getFullYear() &&
-                    pScheduledAt.getMonth() === scheduledAt.getMonth() &&
-                    pScheduledAt.getDate() === scheduledAt.getDate() &&
-                    pScheduledAt.getHours() === scheduledAt.getHours();
+                return pScheduledAt.getUTCFullYear() === scheduledAt.getUTCFullYear() &&
+                    pScheduledAt.getUTCMonth() === scheduledAt.getUTCMonth() &&
+                    pScheduledAt.getUTCDate() === scheduledAt.getUTCDate() &&
+                    pScheduledAt.getUTCHours() === scheduledAt.getUTCHours();
             });
 
             if (alreadyPostedThisSlot) {
